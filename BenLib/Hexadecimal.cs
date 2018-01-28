@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Linq;
 
 namespace BenLib
 {
@@ -172,6 +173,8 @@ namespace BenLib
         }
 
         #endregion
+
+        public static byte[] ToHexByteArray(this string hex) => Enumerable.Range(0, hex.Length).Where(x => x % 2 == 0).Select(x => Convert.ToByte(hex.Substring(x, 2), 16)).ToArray();
     }
 
     /// <summary>

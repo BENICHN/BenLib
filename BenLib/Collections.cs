@@ -145,6 +145,8 @@ namespace BenLib
             return result;
         }
 
+        public static int IndexOf(this Array array, object value) => Array.IndexOf(array, value);
+
         public static T[] Merge<T>(this T[] x, T[] y)
         {
             var z = new T[x.Length + y.Length];

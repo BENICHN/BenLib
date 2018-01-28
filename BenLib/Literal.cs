@@ -126,6 +126,18 @@ namespace BenLib
 
         public static bool IsNullOrEmpty(this string s) => String.IsNullOrEmpty(s);
 
+        public static List<int> AllIndexesOf(this string str, string value)
+        {
+            if (String.IsNullOrEmpty(value)) throw new ArgumentException("the string to find may not be empty", "value");
+            List<int> indexes = new List<int>();
+            for (int index = 0; ; index += value.Length)
+            {
+                index = str.IndexOf(value, index);
+                if (index == -1) return indexes;
+                indexes.Add(index);
+            }
+        }
+
         #region Is
 
         public static bool IsIntegrer(this string s) => Literal.Integrer.IsMatch(s);
