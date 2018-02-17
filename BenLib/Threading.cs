@@ -12,6 +12,49 @@ namespace BenLib
 {
     public class Threading
     {
+        public static async Task MultipleAttempts(Task task, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null)
+        {
+            Exception exception = null;
+
+            for (int i = 0; i < times; i++)
+            {
+                try
+                {
+                    await task;
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                    middleAction?.Invoke();
+                    if (middleTask != null) await middleTask;
+                    await Task.Delay(delay);
+                }
+            }
+
+            if (throwEx && exception != null) throw exception;
+        }
+
+        public static async Task<TResult> MultipleAttempts<TResult>(Task<TResult> task, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null)
+        {
+            Exception exception = null;
+
+            for (int i = 0; i < times; i++)
+            {
+                try { return await task; }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                    middleAction?.Invoke();
+                    if (middleTask != null) await middleTask;
+                    await Task.Delay(delay);
+                }
+            }
+
+            if (throwEx && exception != null) throw exception;
+            else return default;
+        }
+
         public static async Task MultipleAttempts(Action action, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null)
         {
             Exception exception = null;

@@ -145,8 +145,6 @@ namespace BenLib
             return result;
         }
 
-        public static int IndexOf(this Array array, object value) => Array.IndexOf(array, value);
-
         public static T[] Merge<T>(this T[] x, T[] y)
         {
             var z = new T[x.Length + y.Length];
@@ -156,6 +154,118 @@ namespace BenLib
         }
 
         public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || collection.Count() == 0;
+
+        public static int IndexOf(this byte[] haystack, byte[] needle)
+        {
+            int[] lookup = new int[256];
+            for (int i = 0; i < lookup.Length; i++) { lookup[i] = needle.Length; }
+
+            for (int i = 0; i < needle.Length; i++)
+            {
+                lookup[needle[i]] = needle.Length - i - 1;
+            }
+
+            int index = needle.Length - 1;
+            var lastByte = needle.Last();
+            while (index < haystack.Length)
+            {
+                var checkByte = haystack[index];
+                if (checkByte == lastByte)
+                {
+                    bool found = true;
+                    for (int j = needle.Length - 2; j >= 0; j--)
+                    {
+                        if (haystack[index - needle.Length + j + 1] != needle[j])
+                        {
+                            found = false;
+                            break;
+                        }
+                    }
+
+                    if (found)
+                        return index - needle.Length + 1;
+                    else
+                        index++;
+                }
+                else
+                {
+                    index += lookup[checkByte];
+                }
+            }
+            return -1;
+        }
+
+        public static Task<int> IndexOfAsync(this byte[] haystack, byte[] needle, CancellationToken cancellationToken = default) => Task.Run(() =>
+        {
+            int[] lookup = new int[256];
+            for (int i = 0; i < lookup.Length; i++) { lookup[i] = needle.Length; }
+
+            for (int i = 0; i < needle.Length; i++)
+            {
+                lookup[needle[i]] = needle.Length - i - 1;
+            }
+
+            int index = needle.Length - 1;
+            var lastByte = needle.Last();
+            while (index < haystack.Length)
+            {
+                var checkByte = haystack[index];
+                if (haystack[index] == lastByte)
+                {
+                    bool found = true;
+                    for (int j = needle.Length - 2; j >= 0; j--)
+                    {
+                        if (haystack[index - needle.Length + j + 1] != needle[j])
+                        {
+                            found = false;
+                            break;
+                        }
+                    }
+
+                    if (found)
+                        return index - needle.Length + 1;
+                    else
+                        index++;
+                }
+                else
+                {
+                    index += lookup[checkByte];
+                }
+            }
+            return -1;
+        }, cancellationToken);
+
+        public static IEnumerable<int> AllIndexesOf(this byte[] haystack, byte[] needle)
+        {
+            int offset = 0;
+            while(true)
+            {
+                var index = haystack.SubArray(offset, haystack.Length - offset).IndexOf(needle) + offset;
+                if (index < offset) break;
+                else
+                {
+                    offset = index + needle.Length;
+                    yield return index;
+                }
+            }
+        }
+
+        public static async Task<List<int>> AllIndexesOfAsync(this byte[] haystack, byte[] needle, CancellationToken cancellationToken = default)
+        {
+            List<int> indexes = new List<int>();
+            int offset = 0;
+            while (true)
+            {
+                var index = await haystack.SubArray(offset, haystack.Length - offset).IndexOfAsync(needle, cancellationToken) + offset;
+                if (index < offset) break;
+                else
+                {
+                    offset = index + needle.Length;
+                    indexes.Add(index);
+                }
+            }
+            return indexes;
+        }
 
         #region ObservableCollection.Sort
 

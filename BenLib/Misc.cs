@@ -71,6 +71,16 @@ namespace BenLib
 
         public static object GetPropValue(this object src, string propName) => src.GetType().GetProperty(propName).GetValue(src, null);
 
+        public static TryResult TryAccess(this object src, string propName)
+        {
+            try
+            {
+                src.GetPropValue(propName);
+                return new TryResult(true);
+            }
+            catch (Exception ex) { return new TryResult(false, ex.InnerException); }
+        }
+
         public static TryResult TryDispose(this IDisposable disposable)
         {
             try

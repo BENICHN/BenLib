@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib", "BenLib\BenLib.csproj", "{6508F952-9675-4B56-9623-7CA7BA5DCBF1}"
 EndProject
@@ -27,5 +27,14 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9D95A838-D2F8-4EDD-A688-43F034B2052A}
+	EndGlobalSection
+	GlobalSection(AutomaticVersions) = postSolution
+		UpdateAssemblyVersion = True
+		UpdateAssemblyFileVersion = True
+		UpdateAssemblyInfoVersion = False
+		AssemblyVersionSettings = YearStamp.MonthStamp.DayStamp.TimeStamp
+		AssemblyFileVersionSettings = YearStamp.MonthStamp.DayStamp.TimeStamp
+		UpdatePackageVersion = False
+		AssemblyInfoVersionType = SettingsVersion
 	EndGlobalSection
 EndGlobal
