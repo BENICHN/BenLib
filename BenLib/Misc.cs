@@ -35,31 +35,6 @@ namespace BenLib
             var principal = new WindowsPrincipal(identity);
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
-
-        public static async Task ExtractEmbeddedResource(Assembly assembly, string outputPath, string resource)
-        {
-            try
-            {
-                using (Stream stream = assembly.GetManifestResourceStream(resource))
-                {
-                    using (FileStream fileStream = new FileStream(outputPath, FileMode.Create))
-                    {
-                        await Task.Run(() =>
-                        {
-                            for (int i = 0; i < stream.Length; i++)
-                            {
-                                fileStream.WriteByte((byte)stream.ReadByte());
-                            }
-                            fileStream.Close();
-                        });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
     }
 
     public static partial class Extensions
@@ -67,6 +42,18 @@ namespace BenLib
         public static void Times(this int count, Action action)
         {
             for (int i = 0; i < count; i++) action();
+        }
+
+        public static void ExtractEmbeddedResource(this Assembly assembly, string outputPath, string resource)
+        {
+            using (Stream stream = assembly.GetManifestResourceStream(resource))
+            using (FileStream fileStream = new FileStream(outputPath, FileMode.Create)) stream.CopyTo(fileStream);
+        }
+
+        public static Task ExtractEmbeddedResourceAsync(this Assembly assembly, string outputPath, string resource)
+        {
+            using (Stream stream = assembly.GetManifestResourceStream(resource))
+            using (FileStream fileStream = new FileStream(outputPath, FileMode.Create)) return stream.CopyToAsync(fileStream);
         }
 
         public static object GetPropValue(this object src, string propName) => src.GetType().GetProperty(propName).GetValue(src, null);
