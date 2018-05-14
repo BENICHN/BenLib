@@ -2,7 +2,6 @@
 using System.Drawing;
 using System.IO;
 using System.Windows.Media.Imaging;
-using Svg;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
@@ -12,7 +11,7 @@ namespace BenLib
 {
     public class Imaging
     {
-        /// <summary>
+        /*/// <summary>
         /// Class containg code for manipulating SVG graphics.
         /// Authors : Lasitha Ishan Petthawadu & BenNat
         /// </summary>
@@ -105,7 +104,7 @@ namespace BenLib
                 }
                 return document;
             }
-        }
+        }*/
 
         /// <summary>
         /// Windows API helpers managed.

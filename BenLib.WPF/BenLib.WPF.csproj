@@ -60,6 +60,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ApplicationCommands.cs" />
+    <Compile Include="Arrows\ArrowEnds.cs" />
+    <Compile Include="Arrows\ArrowLine.cs" />
+    <Compile Include="Arrows\ArrowLineBase.cs" />
+    <Compile Include="Arrows\ArrowPolyline.cs" />
     <Compile Include="Extensions\HighlightableTextBlock.cs" />
     <Compile Include="Extensions\ListBoxSelector.cs" />
     <Compile Include="MessageBoxManager.cs" />

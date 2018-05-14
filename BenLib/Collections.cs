@@ -155,6 +155,8 @@ namespace BenLib
 
         public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || collection.Count() == 0;
 
+        public static int IndexOf<T>(this T[] array, T value) => Array.IndexOf(array, value);
+
         public static int IndexOf(this byte[] haystack, byte[] needle)
         {
             int[] lookup = new int[256];
@@ -422,27 +424,18 @@ namespace BenLib
         public static void Reselect(this ListViewItem lvi)
         {
             if (lvi.IsSelected) { lvi.IsSelected = true; lvi.IsSelected = false; }
-        }        
-
-        public static Dictionary<object, object> Dictionary(this ResourceDictionary resourceDictionary)
-        {
-            Dictionary<object, object> dict = new System.Collections.Generic.Dictionary<object, object>();
-
-            foreach (DictionaryEntry entry in resourceDictionary)
-            {
-                dict.Add(entry.Key, entry.Value);
-            }
-
-            foreach (ResourceDictionary resdict in resourceDictionary.MergedDictionaries)
-            {
-                foreach (DictionaryEntry entry in resdict)
-                {
-                    try { dict.Add(entry.Key, entry.Value); }
-                    catch (ArgumentException) { if (dict.ContainsKey(entry.Key)) dict[entry.Key] = entry.Value; }
-                }
-            }
-
-            return dict;
         }
+
+        private static List<KeyValuePair<object, object>> KeyValuePairs(this ResourceDictionary resourceDictionary)
+        {
+            var list = new List<KeyValuePair<object, object>>();
+
+            list.AddRange(resourceDictionary.OfType<DictionaryEntry>().Select(entry => new KeyValuePair<object, object>(entry.Key, entry.Value)));
+            foreach (ResourceDictionary resdict in resourceDictionary.MergedDictionaries) list.AddRange(resdict.KeyValuePairs());
+
+            return list;
+        }
+
+        public static Dictionary<object, object> ToDictionary(this ResourceDictionary resourceDictionary) => resourceDictionary.KeyValuePairs().GroupBy(kvp => kvp.Key).ToDictionary(group => group.Key, group => group.Last().Value);
     }
 }

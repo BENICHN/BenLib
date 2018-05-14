@@ -133,18 +133,16 @@ namespace BenLib
         public static Task WaitForExitAsync(this Process process, CancellationToken cancellationToken = default)
         {
             var tcs = new TaskCompletionSource<object>();
-            EventHandler callback = null;
 
-            callback = (sender, e) =>
+            void callback(object sender, EventArgs e)
             {
                 tcs.TrySetResult(null);
                 process.Exited -= callback;
-            };
+            }
 
             process.EnableRaisingEvents = true;
             process.Exited += callback;
-            if (cancellationToken != default)
-                cancellationToken.Register(() => tcs.TrySetCanceled());
+            if (cancellationToken != default) cancellationToken.Register(() => tcs.TrySetCanceled());
 
             return tcs.Task;
         }
@@ -211,6 +209,23 @@ namespace BenLib
                     cancellationToken,
                     TaskContinuationOptions.ExecuteSynchronously,
                     TaskScheduler.Default);
+        }
+
+        public static async Task WithTimeout(this Task task, int millisecondsTimeout)
+        {
+            if (task != await Task.WhenAny(task, Task.Delay(millisecondsTimeout))) throw new TimeoutException();
+        }
+
+        public static async Task<TResult> WithTimeout<TResult>(this Task<TResult> task, int millisecondsTimeout)
+        {
+            if (task == await Task.WhenAny(task, Delay<TResult>(millisecondsTimeout))) return task.Result;
+            else throw new TimeoutException();
+
+            async Task<T> Delay<T>(int millisecondsDelay)
+            {
+                await Task.Delay(millisecondsDelay);
+                return default;
+            }
         }
 
         public static void Suspend(this Process process)

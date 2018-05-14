@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -30,14 +32,24 @@ namespace BenLib.WPF
         /// </summary>
         public string Text
         {
-            get => lb.Text;
+            get => (string)GetValue(TextProperty);
             set => tb.Text = value;
         }
+
+        public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox));
+
+        public string FinalText
+        {
+            get => (string)GetValue(FinalTextProperty);
+            set => SetValue(FinalTextProperty, value);
+        }
+
+        public static readonly DependencyProperty FinalTextProperty = DependencyProperty.Register("FinalText", typeof(string), typeof(SwitchableTextBox));
 
         /// <summary>
         /// Indique si <see cref='Text'/> est vide.
         /// </summary>
-        public bool Empty { get => Text.IsEmpty(); set => Text = String.Empty; }
+        public bool Empty { get => Text.IsNullOrEmpty(); set => Text = String.Empty; }
 
         /// <summary>
         /// Indique si le changement de texte doit être annulé quand celui-ci est vide.
@@ -54,9 +66,15 @@ namespace BenLib.WPF
         {
             InitializeComponent();
             Text = String.Empty;
-            Mouse.Capture(this, CaptureMode.SubTree);
-            AddHandler(Mouse.PreviewMouseDownOutsideCapturedElementEvent, new MouseButtonEventHandler(HandleClickOutsideOfControl), true);
+            //Mouse.Capture(this, CaptureMode.SubTree);
+            //AddHandler(Mouse.PreviewMouseDownOutsideCapturedElementEvent, new MouseButtonEventHandler(HandleClickOutsideOfControl), true);
             tb.TextChanged += Tb_TextChanged;
+            DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(lb, (sender, e) => { SetValue(TextProperty, lb.Text); });
+            DependencyPropertyDescriptor.FromProperty(FinalTextProperty, typeof(SwitchableTextBox)).AddValueChanged(this, (sender, e) =>
+            {
+                tb.Text = FinalText;
+                SetText();
+            });
         }
 
         private void Tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
@@ -65,12 +83,12 @@ namespace BenLib.WPF
 
         #region Events
 
-        private void HandleClickOutsideOfControl(object sender, MouseButtonEventArgs e)
+        /*private void HandleClickOutsideOfControl(object sender, MouseButtonEventArgs e)
         {
             Focus();
             gd.Focus();
             ReleaseMouseCapture();
-        }
+        }*/
 
         private void lb_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -102,8 +120,25 @@ namespace BenLib.WPF
 
         private void tb_PreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            bool ReFocus = false;
+            if (e.NewFocus is ContextMenu) return;
 
+            bool ReFocus = !SetText();
+
+            if (!ReFocus)
+            {
+                tb.Visibility = Visibility.Hidden;
+                bd.Visibility = Visibility.Visible;
+                lb.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                tb.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private bool SetText()
+        {
             if (!Empty)
             {
                 switch (ContentType)
@@ -117,9 +152,12 @@ namespace BenLib.WPF
                             }
                             catch (Exception ex)
                             {
-                                MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
-                                ReFocus = true;
-                            }                            
+                                if (!AllowedStrings.Contains(Text))
+                                {
+                                    MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return false;
+                                }
+                            }
                         }
                         break;
 
@@ -135,27 +173,22 @@ namespace BenLib.WPF
                                 try { Text = double.Parse(Text).ToString(); }
                                 catch
                                 {
-                                    MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
-                                    ReFocus = true;
+
+                                    if (!AllowedStrings.Contains(Text))
+                                    {
+                                        MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+                                        return false;
+                                    }
                                 }
-                            }                            
+                            }
                         }
                         break;
                 }
             }
             else if (CancelWhenEmpty) Text = m_tmp;
 
-            if (!ReFocus)
-            {
-                tb.Visibility = Visibility.Hidden;
-                bd.Visibility = Visibility.Visible;
-                lb.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                tb.Focus();
-                e.Handled = true;
-            }
+            SetValue(FinalTextProperty, lb.Text);
+            return true;
         }
 
         private void gd_GotFocus(object sender, RoutedEventArgs e) => RaiseEvent(new RoutedEventArgs(LostFocusEvent, this));

@@ -116,6 +116,7 @@ namespace BenLib
 
         public string ToString(string format)
         {
+            dynamic seconds = (int)Seconds;
             bool started = false, tts = false;
             int current = 0, h = 0, m = 0, s = 0, dec = 0;
             StringBuilder hs = new StringBuilder("{0:"), ms = new StringBuilder("{0:"), ss = new StringBuilder("{0:"), result = new StringBuilder();
@@ -146,7 +147,7 @@ namespace BenLib
                         else throw new FormatException();
                         break;
                     case '.':
-                        if (current == 3) { current = 4; ss.Append('.'); }
+                        if (current == 3) { current = 4; ss.Append('.'); seconds = Seconds; }
                         else throw new FormatException();
                         break;
                     case ':':
@@ -172,11 +173,11 @@ namespace BenLib
                     result.Append(":" + String.Format(ms.ToString(), Minutes));
                     if (tts)
                     {
-                        result.Append(":" + Seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
+                        result.Append(":" + seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
                     }
                     else if (s > 0)
                     {
-                        result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), Seconds));
+                        result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
                     }
                 }
             }
@@ -185,20 +186,20 @@ namespace BenLib
                 result.Append(String.Format(ms.ToString(), TotalMinutes));
                 if (tts)
                 {
-                    result.Append(":" + Seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
+                    result.Append(":" + seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
                 }
                 else if (s > 0)
                 {
-                    result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), Seconds));
+                    result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
                 }
             }
             else if (tts)
             {
-                result.Append(Seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
+                result.Append(seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
             }
             else if (s > 0)
             {
-                result.Append(String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), Seconds));
+                result.Append(String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
             }
 
             return result.ToString();

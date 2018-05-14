@@ -115,6 +115,19 @@ namespace BenLib.WPF
         }
     }
 
+    public static partial class Extensions
+    {
+        public static TryResult TryClose(this Window window)
+        {
+            try
+            {
+                window.Close();
+                return new TryResult(true);
+            }
+            catch (Exception ex) { return new TryResult(false, ex); }
+        }
+    }
+
     public class BoolToValueConverter<T> : DependencyObject, IValueConverter
     {
         public T FalseValue { get => (T)GetValue(FalseValueProperty); set => SetValue(FalseValueProperty, value); }

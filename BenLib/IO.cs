@@ -1,39 +1,24 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Security.Principal;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
-using System.Windows.Threading;
-using System.Diagnostics;
 using System.Threading;
 using System.Security.AccessControl;
 using System.Threading.Tasks;
-using System.Reflection;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
-using IniParser;
-using IniParser.Model;
-using System.Text;
 using IWshRuntimeLibrary;
 using Z.Linq;
-using Z.Linq.Async;
 using AsyncIO.FileSystem;
-using AsyncIO.FileSystem.Extensions;
+using System.Globalization;
 
 namespace BenLib
 {
     public class IO
     {
+        public static string[] ReservedFilenames { get; } = { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
         static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
 
@@ -155,38 +140,36 @@ namespace BenLib
         /// </summary>
         /// <param name="size">Taille du fichier.</param>
         /// <returns>Chaîne représentant la taille du fichier.</returns>
-        public static string GetFileSize(long size)
+        public static string GetFileSize(long size, string format = null)
         {
+            var culture = CultureInfo.CurrentCulture;
             double NewSize = size;
             double tmp;
 
-            if (size < 1000)
-            {
-                return size + " o";
-            }
+            if (size < 1000) return size.ToString(format, culture) + (culture.ToString().Contains("fr-") ? " o" : " B");
             else if (size >= 1000 && size < 1000000)
             {
                 NewSize /= 1000;
                 tmp = Math.Round(NewSize, 2);
-                return tmp + " ko";
+                return tmp.ToString(format, culture) + (culture.ToString().Contains("fr-") ? " ko" : " kB");
             }
             else if (size >= 1000000 && size < 1000000000)
             {
                 NewSize /= 1000000;
                 tmp = Math.Round(NewSize, 2);
-                return tmp + " Mo";
+                return tmp.ToString(format, culture) + (culture.ToString().Contains("fr-") ? " Mo" : " MB");
             }
             else if (size >= 1000000000 && size < 1000000000000)
             {
                 NewSize /= 1000000000;
                 tmp = Math.Round(NewSize, 2);
-                return tmp + " Go";
+                return tmp.ToString(format, culture) + (culture.ToString().Contains("fr-") ? " Go" : " GB");
             }
             else if (size >= 1000000000000)
             {
                 NewSize /= 1000000000000;
                 tmp = Math.Round(NewSize, 2);
-                return tmp + " To";
+                return tmp.ToString(format, culture) + (culture.ToString().Contains("fr-") ? " To" : " TB");
             }
             else return null;
         }
@@ -262,6 +245,8 @@ namespace BenLib
             return s.ToArray();
         }
 
+        #region BinaryReader
+
         public static byte[] ReadAllBytes(this BinaryReader reader)
         {
             const int bufferSize = 4096;
@@ -299,6 +284,10 @@ namespace BenLib
             reader.BaseStream.Seek(position, SeekOrigin.Begin);
             return result;
         }
+
+        #endregion
+
+        #region Stream
 
         private static async Task<byte> ReadByteAsync(this Stream s)
         {
@@ -357,7 +346,7 @@ namespace BenLib
 
         public static byte[] ReadBytes(this Stream stream, long offset, int count)
         {
-            var buffer = new byte[Math.Min(stream.Length - offset, count)];
+            var buffer = new byte[Math.Min(stream.Length - stream.Position - offset, count)];
             stream.Position += offset;
             stream.Read(buffer, 0, count);
             return buffer;
@@ -365,8 +354,22 @@ namespace BenLib
 
         public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, CancellationToken cancellationToken = default)
         {
-            var buffer = new byte[Math.Min(stream.Length - offset, count)];
+            var buffer = new byte[Math.Min(stream.Length - stream.Position - offset, count)];
             stream.Position += offset;
+            await stream.ReadAsync(buffer, 0, count, cancellationToken);
+            return buffer;
+        }
+
+        public static byte[] ReadBytes(this Stream stream, int count)
+        {
+            var buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
+            stream.Read(buffer, 0, count);
+            return buffer;
+        }
+
+        public static async Task<byte[]> ReadBytesAsync(this Stream stream, int count, CancellationToken cancellationToken = default)
+        {
+            var buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
             await stream.ReadAsync(buffer, 0, count, cancellationToken);
             return buffer;
         }
@@ -381,6 +384,34 @@ namespace BenLib
         {
             if (stream.Length > int.MaxValue) throw new IOException("Le fichier est trop long. Cette opération est actuellement limitée aux fichiers de prise en charge de taille inférieure à 2 gigaoctets.");
             return stream.ReadBytesAsync(0, (int)stream.Length, cancellationToken);
+        }
+
+        public static void CopyTo(this Stream source, Stream destination, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
+        {
+            byte[] buffer = new byte[81920];
+            int read;
+            if (postitonZero) source.Seek(0, SeekOrigin.Begin);
+            source.Position += offset;
+            while (count > 0 && (read = source.Read(buffer, 0, Math.Min(buffer.Length, count))) > 0)
+            {
+                destination.Write(buffer, 0, read);
+                count -= read;
+            }
+        }
+
+        public static async Task CopyToAsync(this Stream source, Stream destination, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
+        {
+            if (cancellationToken.IsCancellationRequested) return;
+
+            byte[] buffer = new byte[81920];
+            int read;
+            if (postitonZero) source.Seek(0, SeekOrigin.Begin);
+            source.Position += offset;
+            while (!cancellationToken.IsCancellationRequested && count > 0 && (read = await source.ReadAsync(buffer, 0, Math.Min(buffer.Length, count), cancellationToken)) > 0)
+            {
+                await destination.WriteAsync(buffer, 0, read, cancellationToken);
+                count -= read;
+            }
         }
 
         public static long PositionOf(this Stream haystack, byte[] needle, long offset = 0)
@@ -487,6 +518,8 @@ namespace BenLib
             }
             finally { if (keepPosition) haystack.Position = pos; }
         }
+
+        #endregion
 
         public static void ExtractToDirectory(this ZipArchiveEntry entry, string destinationDirectoryName, bool overwrite)
         {
@@ -597,6 +630,21 @@ namespace BenLib
             await AsyncFile.CopyAsync(sourceFileName, destFileName, overwrite, cancellationToken);
         }
 
-        public static Task TryAndRetryDeleteAsync(string path, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null) => Threading.MultipleAttempts(AsyncFile.DeleteAsync(path), times, delay, throwEx, middleAction, middleTask);
+        public static async Task<bool> TryAndRetryDeleteAsync(string path, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null)
+        {
+            if (!System.IO.File.Exists(path)) return true;
+            await Threading.MultipleAttempts(AsyncFile.DeleteAsync(path), times, delay, throwEx, middleAction, middleTask);
+            return !System.IO.File.Exists(path);
+        }
+
+        public static async Task<TryResult> TryDeleteAsync(string path)
+        {
+            Exception exception = null;
+
+            try { await AsyncFile.DeleteAsync(path); }
+            catch (Exception ex) { exception = ex; }
+
+            return new TryResult(!System.IO.File.Exists(path), exception);
+        }
     }
 }

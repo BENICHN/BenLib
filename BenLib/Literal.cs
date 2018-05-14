@@ -25,12 +25,30 @@ namespace BenLib
 
         public static NumberFormatInfo DecimalSeparatorPoint = new NumberFormatInfo() { NumberDecimalSeparator = ".", PercentDecimalSeparator = ".", CurrencyDecimalSeparator = "." };
         public static NumberFormatInfo DecimalSeparatorComma = new NumberFormatInfo() { NumberDecimalSeparator = ",", PercentDecimalSeparator = ",", CurrencyDecimalSeparator = "," };
-
-        public static string[] ForbiddenPathNameCharacters { get; set; } = { "<", ">", ":", "\"", "/", "\\", "|", "?", "*" };
     }
 
     public static partial class Extensions
     {
+        public static string TrimStart(this string target, string trimString, int times = 0)
+        {
+            double timesD = times > 0 ? times : double.PositiveInfinity;
+            string result = target;
+
+            for (int i = 0; i < timesD && result.StartsWith(trimString); i++) result = result.Substring(trimString.Length);
+
+            return result;
+        }
+
+        public static string TrimEnd(this string target, string trimString, int times = 0)
+        {
+            double timesD = times > 0 ? times : double.PositiveInfinity;
+            string result = target;
+
+            for (int i = 0; i < timesD && result.EndsWith(trimString); i++) result = result.Substring(0, result.Length - trimString.Length);
+
+            return result;
+        }
+
         public static bool ContainsAny(this string s, IEnumerable<char> values)
         {
             if (s == null || values == null) return false;
@@ -125,6 +143,7 @@ namespace BenLib
         public static bool IsEmpty(this string s) => s == String.Empty ? true : false;
 
         public static bool IsNullOrEmpty(this string s) => String.IsNullOrEmpty(s);
+        public static bool IsNullOrWhiteSpace(this string s) => String.IsNullOrWhiteSpace(s);
 
         public static List<int> AllIndexesOf(this string str, string value)
         {
