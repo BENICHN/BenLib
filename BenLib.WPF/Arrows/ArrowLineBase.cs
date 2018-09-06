@@ -64,18 +64,18 @@ namespace BenLib.WPF
         /// </summary>
         public static readonly DependencyProperty ArrowEndsProperty =
             DependencyProperty.Register("ArrowEnds",
-                typeof(ArrowEnds), typeof(ArrowLineBase),
-                new FrameworkPropertyMetadata(ArrowEnds.End,
+                typeof(ArrowEnd), typeof(ArrowLineBase),
+                new FrameworkPropertyMetadata(ArrowEnd.End,
                         FrameworkPropertyMetadataOptions.AffectsMeasure));
 
         /// <summary>
         ///     Gets or sets the property that determines which ends of the
         ///     line have arrows.
         /// </summary>
-        public ArrowEnds ArrowEnds
+        public ArrowEnd ArrowEnds
         {
             set { SetValue(ArrowEndsProperty, value); }
-            get { return (ArrowEnds)GetValue(ArrowEndsProperty); }
+            get { return (ArrowEnd)GetValue(ArrowEndsProperty); }
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace BenLib.WPF
                 if (count > 0)
                 {
                     // Draw the arrow at the start of the line.
-                    if ((ArrowEnds & ArrowEnds.Start) == ArrowEnds.Start)
+                    if ((ArrowEnds & ArrowEnd.Start) == ArrowEnd.Start)
                     {
                         Point pt1 = pathfigLine.StartPoint;
                         Point pt2 = polysegLine.Points[0];
@@ -137,7 +137,7 @@ namespace BenLib.WPF
                     }
 
                     // Draw the arrow at the end of the line.
-                    if ((ArrowEnds & ArrowEnds.End) == ArrowEnds.End)
+                    if ((ArrowEnds & ArrowEnd.End) == ArrowEnd.End)
                     {
                         Point pt1 = count == 1 ? pathfigLine.StartPoint :
                                                  polysegLine.Points[count - 2];

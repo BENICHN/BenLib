@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
+using System.IO;
 
 namespace BenLib
 {
@@ -19,7 +20,7 @@ namespace BenLib
         /// </summary>
         public static string GetStBytes(this byte[] bytes)
         {
-            return BitConverter.ToString(bytes).Replace("-", String.Empty);
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
         }
 
         /// <summary>
@@ -175,6 +176,28 @@ namespace BenLib
         #endregion
 
         public static byte[] ToHexByteArray(this string hex) => Enumerable.Range(0, hex.Length).Where(x => x % 2 == 0).Select(x => Convert.ToByte(hex.Substring(x, 2), 16)).ToArray();
+
+        public static long Peek64Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(stream.PeekEndian(offset, 8, littleEndian), 0);
+        public static async Task<long> Peek64BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(await stream.PeekEndianAsync(offset, 8, littleEndian), 0);
+
+        public static int Peek32Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(stream.PeekEndian(offset, 4, littleEndian), 0);
+        public static async Task<int> Peek32BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(await stream.PeekEndianAsync(offset, 4, littleEndian), 0);
+
+        public static short Peek16Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(stream.PeekEndian(offset, 2, littleEndian), 0);
+        public static async Task<short> Peek16BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(await stream.PeekEndianAsync(offset, 2, littleEndian), 0);
+
+        public static byte Peek8Bit(this Stream stream, long offset) => stream.PeekByte(offset);
+
+        public static long Read64Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(stream.ReadEndian(offset, 8, littleEndian), 0);
+        public static async Task<long> Read64BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(await stream.ReadEndianAsync(offset, 8, littleEndian), 0);
+
+        public static int Read32Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(stream.ReadEndian(offset, 4, littleEndian), 0);
+        public static async Task<int> Read32BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(await stream.ReadEndianAsync(offset, 4, littleEndian), 0);
+
+        public static short Read16Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(stream.ReadEndian(offset, 2, littleEndian), 0);
+        public static async Task<short> Read16BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(await stream.ReadEndianAsync(offset, 2, littleEndian), 0);
+
+        public static byte Read8Bit(this Stream stream, long offset) => stream.ReadByte(offset);
     }
 
     /// <summary>
@@ -186,24 +209,18 @@ namespace BenLib
 
         /// <summary>
         /// Retourne la valeur Int32 d'un nombre au format LittleEndian ou BigEndian contenu dans une chaîne.
-        /// </summary>    
+        /// </summary>
         public static int DCBAEndianToInt(string bytes, bool LittleEndian)
         {
             if (LittleEndian)
             {
                 int ret = 0;
-                string hexLittleEndian = String.Empty;
+                string hexLittleEndian = string.Empty;
                 if (bytes.Length % 2 != 0) return ret;
-                for (int i = bytes.Length - 2; i >= 0; i -= 2)
-                {
-                    hexLittleEndian += bytes.Substring(i, 2);
-                }
-                return Int32.Parse(hexLittleEndian, NumberStyles.HexNumber);
+                for (int i = bytes.Length - 2; i >= 0; i -= 2) hexLittleEndian += bytes.Substring(i, 2);
+                return int.Parse(hexLittleEndian, NumberStyles.HexNumber);
             }
-            else
-            {
-                return Int32.Parse(bytes, NumberStyles.HexNumber);
-            }
+            else return int.Parse(bytes, NumberStyles.HexNumber);
         }
 
         /// <summary>
@@ -213,10 +230,7 @@ namespace BenLib
         {
             if (LittleEndian)
             {
-                if (BitConverter.IsLittleEndian)
-                {
-                    return BitConverter.ToInt32(bytes, 0);
-                }
+                if (BitConverter.IsLittleEndian) return BitConverter.ToInt32(bytes, 0);
                 else
                 {
                     Array.Reverse(bytes);
@@ -227,10 +241,49 @@ namespace BenLib
             }
             else
             {
-                if (!BitConverter.IsLittleEndian)
+                if (!BitConverter.IsLittleEndian) return BitConverter.ToInt32(bytes, 0);
+                else
                 {
-                    return BitConverter.ToInt32(bytes, 0);
+                    Array.Reverse(bytes);
+                    int tmp = BitConverter.ToInt32(bytes, 0);
+                    Array.Reverse(bytes);
+                    return tmp;
                 }
+            }
+        }
+
+        public static long DCBAEndianToLong(string bytes, bool LittleEndian)
+        {
+            if (LittleEndian)
+            {
+                long ret = 0;
+                string hexLittleEndian = string.Empty;
+                if (bytes.Length % 2 != 0) return ret;
+                for (int i = bytes.Length - 2; i >= 0; i -= 2) hexLittleEndian += bytes.Substring(i, 2);
+                return long.Parse(hexLittleEndian, NumberStyles.HexNumber);
+            }
+            else return long.Parse(bytes, NumberStyles.HexNumber);
+        }
+
+        /// <summary>
+        /// Retourne la valeur Int64 d'un nombre au format LittleEndian ou BigEndian.
+        /// </summary>
+        public static long DCBAEndianToLong(byte[] bytes, bool LittleEndian)
+        {
+            if (LittleEndian)
+            {
+                if (BitConverter.IsLittleEndian) return BitConverter.ToInt64(bytes, 0);
+                else
+                {
+                    Array.Reverse(bytes);
+                    int tmp = BitConverter.ToInt32(bytes, 0);
+                    Array.Reverse(bytes);
+                    return tmp;
+                }
+            }
+            else
+            {
+                if (!BitConverter.IsLittleEndian) return BitConverter.ToInt64(bytes, 0);
                 else
                 {
                     Array.Reverse(bytes);

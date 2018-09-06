@@ -1,17 +1,17 @@
-﻿using System;
+﻿using AsyncIO.FileSystem;
+using IWshRuntimeLibrary;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Principal;
-using System.Threading;
-using System.Security.AccessControl;
-using System.Threading.Tasks;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Runtime.InteropServices;
-using IWshRuntimeLibrary;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.Threading;
+using System.Threading.Tasks;
 using Z.Linq;
-using AsyncIO.FileSystem;
-using System.Globalization;
 
 namespace BenLib
 {
@@ -20,7 +20,7 @@ namespace BenLib
         public static string[] ReservedFilenames { get; } = { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
 
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-        static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
+        private static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct SHELLEXECUTEINFO
@@ -60,23 +60,20 @@ namespace BenLib
             return ShellExecuteEx(ref info);
         }
 
-        public static List<String> DirSearch(string sDir, Action<Exception> doAtException = null)
+        public static IEnumerable<string> DirSearch(string sDir, bool recursive, Action<Exception> doAtException = null)
         {
-            List<String> files = new List<String>();
-            try
+            try { return DirSearchCore(); }
+            catch (Exception ex)
             {
-                foreach (string f in Directory.GetFiles(sDir))
-                {
-                    files.Add(f);
-                }
-                foreach (string d in Directory.GetDirectories(sDir))
-                {
-                    files.AddRange(DirSearch(d, doAtException));
-                }
+                doAtException?.Invoke(ex);
+                return null;
             }
-            catch (Exception ex) { doAtException?.Invoke(ex); }
 
-            return files;
+            IEnumerable<string> DirSearchCore()
+            {
+                foreach (string f in Directory.GetFiles(sDir)) yield return f;
+                if (recursive) foreach (string f in Directory.GetDirectories(sDir).SelectMany(d => DirSearch(d, recursive, doAtException))) yield return f;
+            }
         }
 
         public static void CreateShortcut(string shortcutName, string shortcutPath, string targetFileLocation, string description = "", string iconLocation = "")
@@ -188,6 +185,41 @@ namespace BenLib
             string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension((Path.GetRandomFileName())));
             Directory.CreateDirectory(tempDirectory);
             return tempDirectory;
+        }
+
+        public static string Number(string fileName)
+        {
+            string result;
+            for (int i = 1; true; i++)
+            {
+                if (!System.IO.File.Exists(result = Path.Combine(
+                    Path.GetDirectoryName(fileName),
+                    $"{Path.GetFileNameWithoutExtension(fileName)} ({i}){Path.GetExtension(fileName)}")))
+                {
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        public static Task<string> NumberAsync(string fileName) => Task.Run(() => Number(fileName));
+
+        public static string GetTempFilePath()
+        {
+            var result = Path.GetTempFileName();
+            System.IO.File.Delete(result);
+            return result;
+        }
+
+        public static TryResult TryDelete(string path)
+        {
+            Exception exception = null;
+
+            try { System.IO.File.Delete(path); }
+            catch (Exception ex) { exception = ex; }
+
+            return new TryResult(!System.IO.File.Exists(path), exception);
         }
     }
 
@@ -344,22 +376,68 @@ namespace BenLib
             return result;
         }
 
-        public static byte[] ReadBytes(this Stream stream, long offset, int count)
+        public static byte ReadByte(this Stream stream, long offset, bool postitonZero = true)
         {
-            var buffer = new byte[Math.Min(stream.Length - stream.Position - offset, count)];
-            stream.Position += offset;
-            stream.Read(buffer, 0, count);
-            return buffer;
+            if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
+            else stream.Position += offset;
+
+            return (byte)stream.ReadByte();
         }
 
-        public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, CancellationToken cancellationToken = default)
+        public static byte[] ReadBytes(this Stream stream, long offset, int count, bool postitonZero = true)
         {
-            var buffer = new byte[Math.Min(stream.Length - stream.Position - offset, count)];
-            stream.Position += offset;
-            await stream.ReadAsync(buffer, 0, count, cancellationToken);
-            return buffer;
+            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            var result = new byte[maxCount];
+
+            if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
+            else stream.Position += offset;
+
+            stream.Read(result, 0, maxCount);
+
+            return result;
         }
 
+        public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, CancellationToken cancellationToken = default, bool postitonZero = true)
+        {
+            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            var result = new byte[maxCount];
+
+            if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
+            else stream.Position += offset;
+
+            await stream.ReadAsync(result, 0, maxCount, cancellationToken);
+
+            return result;
+        }
+
+        public static byte[] ReadEndian(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        {
+            var bytes = stream.ReadBytes(offset, count, postitonZero);
+            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+            else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+        }
+
+        public static async Task<byte[]> ReadEndianAsync(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        {
+            var bytes = await stream.ReadBytesAsync(offset, count, default, postitonZero);
+            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+            else return !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+        }
+
+        public static byte[] PeekEndian(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        {
+            var bytes = stream.PeekBytes(offset, count, postitonZero);
+            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+            else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+        }
+
+        public static async Task<byte[]> PeekEndianAsync(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        {
+            var bytes = await stream.PeekBytesAsync(offset, count, default, postitonZero);
+            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+            else return !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+        }
+        
         public static byte[] ReadBytes(this Stream stream, int count)
         {
             var buffer = new byte[Math.Min(stream.Length - stream.Position, count)];

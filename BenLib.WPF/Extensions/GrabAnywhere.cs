@@ -35,8 +35,12 @@ namespace BenLib.WPF
         {
             if (m_slider != null)
             {
-                (m_slider.Template.FindName("PART_Track", m_slider) as Track).Thumb.MouseEnter += Thumb_MouseEnter;
-                m_slider.IsMoveToPointEnabled = true;
+                if (m_slider.Template?.FindName("PART_Track", m_slider) is Track track)
+                {
+                    track.Thumb.MouseEnter += Thumb_MouseEnter;
+                    m_slider.IsMoveToPointEnabled = true;
+                }
+                else return false;
 
                 return true;
             }

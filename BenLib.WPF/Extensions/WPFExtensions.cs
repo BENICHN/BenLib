@@ -49,16 +49,10 @@ namespace BenLib.WPF
             else return false;
         }
 
-        
-        private void Element_PreviewMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            IsPressed = false;
-        }
 
-        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            IsPressed = true;
-        }
+        private void Element_PreviewMouseUp(object sender, MouseButtonEventArgs e) => IsPressed = false;
+
+        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e) => IsPressed = true;
 
         private void UnRegister()
         {

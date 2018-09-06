@@ -148,15 +148,15 @@ namespace BenLib.WPF
                 {
                     if (AllowedStrings != null && AllowedStrings.Contains(m_textBox.Text)) goto End;
 
-                    if (m_textBox.Text.Replace(ForbiddenStrings, String.Empty) != m_textBox.Text) { m_txtforcechange = true; m_textBox.Text = m_ante; }
+                    if (m_textBox.Text.Replace(ForbiddenStrings, string.Empty) != m_textBox.Text) { m_txtforcechange = true; m_textBox.Text = m_ante; }
 
                     switch (ContentType)
                     {
-                        case ContentTypes.Integrer:
-                            CheckNumText(Literal.PreviewIntegrer);
+                        case ContentTypes.Integer:
+                            CheckNumText(Literal.PreviewInteger);
                             break;
-                        case ContentTypes.UnsignedIntegrer:
-                            CheckNumText(Literal.PreviewUnsignedIntegrer);
+                        case ContentTypes.UnsignedInteger:
+                            CheckNumText(Literal.PreviewUnsignedInteger);
                             break;
                         case ContentTypes.Double:
                             CheckNumText(Literal.PreviewDouble);
@@ -178,10 +178,10 @@ namespace BenLib.WPF
 
         private void CheckNumText(Regex regex)
         {
-            if (m_textBox.Text.Replace(" ", String.Empty) != m_textBox.Text)
+            if (m_textBox.Text.Replace(" ", string.Empty) != m_textBox.Text)
             {
                 m_txtforcechange = true;
-                m_textBox.Text = m_textBox.Text.Replace(" ", String.Empty);
+                m_textBox.Text = m_textBox.Text.Replace(" ", string.Empty);
             }
 
             if (!regex.IsMatch(m_textBox.Text))
@@ -192,5 +192,5 @@ namespace BenLib.WPF
         }
     }
 
-    public enum ContentTypes { Text, Integrer, UnsignedIntegrer, Double, UnsignedDouble }
+    public enum ContentTypes { Text, Integer, UnsignedInteger, Double, UnsignedDouble }
 }

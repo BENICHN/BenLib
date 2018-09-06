@@ -5,13 +5,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace BenLib.WPF
 {
     public class Misc
     {
+        private static Random Random { get; } = new Random();
+
         /*public static readonly DependencyProperty CommandBindingsProperty = DependencyProperty.RegisterAttached("CommandBindings", typeof(CommandBindingCollection), typeof(Misc), new UIPropertyMetadata(null, CommandBindingsChanged));
 
         private static void CommandBindingsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -113,6 +117,24 @@ namespace BenLib.WPF
             if (parentObject is T parent) return parent;
             else return FindParent<T>(parentObject);
         }
+
+        public static Color GetRandomColor() => Color.FromRgb((byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+
+        public static Color GetRandomColor(byte alpha) => Color.FromArgb(alpha, (byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+
+        public static Color GetRandomColor(byte minAlpha, byte maxAlpha) => Color.FromArgb((byte)Num.RandomInt(minAlpha, minAlpha), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+
+        public static Ellipse CreateCircle(Point center, double radius, Brush fill = null, Brush stroke = null, double strokeThickness = 0)
+        {
+            double diameter = 2 * radius;
+
+            var result = new Ellipse { Width = diameter, Height = diameter, Fill = fill ?? Brushes.Black, Stroke = stroke ?? Brushes.Black, StrokeThickness = strokeThickness };
+
+            Canvas.SetTop(result, center.Y - radius);
+            Canvas.SetLeft(result, center.X - radius);
+
+            return result;
+        }
     }
 
     public static partial class Extensions
@@ -126,6 +148,27 @@ namespace BenLib.WPF
             }
             catch (Exception ex) { return new TryResult(false, ex); }
         }
+
+        public static T GetAsTypedFrozen<T>(this T freezable) where T : Freezable
+        {
+            if (freezable.CanFreeze) freezable.Freeze();
+            return freezable;
+        }
+
+        public static T Edit<T>(this T freezable, Action<T> edition) where T : Freezable
+        {
+            var isFrozen = freezable.IsFrozen;
+
+            var result = (T)freezable.CloneCurrentValue();
+            edition(result);
+
+            if (isFrozen && result.CanFreeze) result.Freeze();
+            return result;
+        }
+
+        public static double Width(this GlyphRun glyphRun) => glyphRun.AdvanceWidths.Sum();
+        public static double Height(this GlyphRun glyphRun) => glyphRun.GlyphTypeface.Baseline * glyphRun.FontRenderingEmSize;
+        public static Size Size(this GlyphRun glyphRun) => new Size(glyphRun.Width(), glyphRun.Height());
     }
 
     public class BoolToValueConverter<T> : DependencyObject, IValueConverter

@@ -23,7 +23,22 @@ namespace BenLib
 {
     public class Collections
     {
+        public static IEnumerable<T> CreateFilledCollection<T>(int count) where T : new()
+        {
+            for (int i = 0; i < count; i++) yield return new T();
+        }
 
+        public static IEnumerable<double> DoubleRange(double start, double length, double step)
+        {
+            double end = start + length;
+            for (double i = start; i < end; i += step) yield return i;
+        }
+
+        public static IEnumerable<decimal> DecimalRange(decimal start, decimal length, decimal step)
+        {
+            decimal end = start + length;
+            for (decimal i = start; i < end; i += step) yield return i;
+        }
     }
 
     /// <summary>
@@ -145,6 +160,37 @@ namespace BenLib
             return result;
         }
 
+        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, int index, int length)
+        {
+            if (source is T[] array)
+            {
+                int count = array.Length - index;
+                if (count < Math.Max(0, length)) throw new ArgumentOutOfRangeException("source");
+                if (length >= 0) count = length;
+
+                var result = new T[count];
+                Array.Copy(array, index, result, 0, count);
+                return result;
+            }
+            else return SubCollectionCore();
+
+            IEnumerable<T> SubCollectionCore()
+            {
+                var enumerator = source.GetEnumerator();
+                for (int i = 0; i < index; i++) { if (!enumerator.MoveNext()) throw new ArgumentOutOfRangeException("source"); }
+                for (int i = index; length > 0 ? i < index + length : true; i++)
+                {
+                    if (!enumerator.MoveNext())
+                    {
+                        if (length > 0) throw new ArgumentOutOfRangeException("source");
+                        break;
+                    }
+
+                    yield return enumerator.Current;
+                }
+            }
+        }
+
         public static T[] Merge<T>(this T[] x, T[] y)
         {
             var z = new T[x.Length + y.Length];
@@ -153,7 +199,166 @@ namespace BenLib
             return z;
         }
 
-        public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || collection.Count() == 0;
+        public static IEnumerable<T> DynamicCast<T>(this IEnumerable source) { foreach (dynamic current in source) yield return (T)current; }
+
+        public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || !collection.Any();
+
+        public static bool IsNullOrEmpty<T>(this ICollection<T> collection) => collection == null || collection.Count == 0;
+
+        public static bool Contains<T>(this T[] source, T value) => Array.IndexOf(source, value) >= 0;
+
+        public static IEnumerable<T> Fill<T>(this ICollection<T> collection) where T : new()
+        {
+            foreach (T t in collection) yield return new T();
+        }
+
+        public static IEnumerable<T> Fill<T>(this ICollection<T> collection, Func<int, T> fillFunction)
+        {
+            int i = 0;
+            foreach (T t in collection)
+            {
+                yield return fillFunction(i);
+                i++;
+            }
+        }
+
+        public static void ForEach<T>(this IEnumerable<T> collection, Action<int, T> action)
+        {
+            int i = 0;
+            foreach (T t in collection)
+            {
+                action(i, t);
+                i++;
+            }
+        }
+        public static void ForEach<T>(this IEnumerable<T> collection, Action<int> action)
+        {
+            int i = 0;
+            foreach (T t in collection)
+            {
+                action(i);
+                i++;
+            }
+        }
+        public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)
+        {
+            int i = 0;
+            foreach (T t in collection)
+            {
+                action(t);
+                i++;
+            }
+        }
+
+        public static IEnumerable<(T From, T To)> ExpandOrContract<T>(this IList<T> list1, (int Start, int End) range1, IList<T> list2, (int Start, int End) range2)
+        {
+            int count1 = range1.End - range1.Start + 1;
+            int count2 = range2.End - range2.Start + 1;
+
+            if (count1 == count2)
+            {
+                int offset = range2.Start - range1.Start;
+                for (int i = range1.Start; i <= range1.End; i++) yield return (list1[i], list2[offset + i]);
+            }
+            else
+            {
+                int big = Math.Max(count1, count2);
+                int small = Math.Min(count1, count2);
+
+                bool range1SmallerThanRange2 = count1 == small;
+
+                int quotient = big / small;
+                int rest = big - small * quotient;
+                var result = new int[big];
+
+                int currentIndex = 0;
+
+                if (range1SmallerThanRange2)
+                {
+                    int offset = range2.Start;
+                    for (int i = range1.Start; i <= range1.End; i++)
+                    {
+                        for (int j = 0; j < quotient; j++)
+                        {
+                            yield return (list1[i], list2[offset + currentIndex]);
+                            currentIndex++;
+                        }
+                        if (rest > 0)
+                        {
+                            yield return (list1[i], list2[offset + currentIndex]);
+                            currentIndex++;
+                            rest--;
+                        }
+                    }
+                }
+                else
+                {
+                    int offset = range1.Start;
+                    for (int i = range2.Start; i <= range2.End; i++)
+                    {
+                        for (int j = 0; j < quotient; j++)
+                        {
+                            yield return (list1[offset + currentIndex], list2[i]);
+                            currentIndex++;
+                        }
+                        if (rest > 0)
+                        {
+                            yield return (list1[offset + currentIndex], list2[i]);
+                            currentIndex++;
+                            rest--;
+                        }
+                    }
+                }
+            }
+        }
+
+        public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, Predicate<T> predicate, Func<T, IEnumerable<T>> replacement)
+        {
+            var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+                if (predicate(current)) foreach (var item in replacement(current)) yield return item;
+                else yield return current;
+            }
+        }
+
+        public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, Predicate<T> predicate, Func<T, T> replacement)
+        {
+            var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+                if (predicate(current)) yield return replacement(current);
+                else yield return current;
+            }
+        }
+
+        public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, T toReplace, Func<T, IEnumerable<T>> replacement)
+        {
+            var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+                if (current.Equals(toReplace)) foreach (var item in replacement(current)) yield return item;
+                else yield return current;
+            }
+        }
+
+        public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, T toReplace, Func<T, T> replacement)
+        {
+            var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+                if (current.Equals(toReplace)) yield return replacement(current);
+                else yield return current;
+            }
+        }
 
         public static int IndexOf<T>(this T[] array, T value) => Array.IndexOf(array, value);
 
@@ -202,10 +407,7 @@ namespace BenLib
             int[] lookup = new int[256];
             for (int i = 0; i < lookup.Length; i++) { lookup[i] = needle.Length; }
 
-            for (int i = 0; i < needle.Length; i++)
-            {
-                lookup[needle[i]] = needle.Length - i - 1;
-            }
+            for (int i = 0; i < needle.Length; i++) lookup[needle[i]] = needle.Length - i - 1;
 
             int index = needle.Length - 1;
             var lastByte = needle.Last();
@@ -240,7 +442,7 @@ namespace BenLib
         public static IEnumerable<int> AllIndexesOf(this byte[] haystack, byte[] needle)
         {
             int offset = 0;
-            while(true)
+            while (true)
             {
                 var index = haystack.SubArray(offset, haystack.Length - offset).IndexOf(needle) + offset;
                 if (index < offset) break;
@@ -267,6 +469,82 @@ namespace BenLib
                 }
             }
             return indexes;
+        }
+
+        public static IEnumerable<int> AllIndexesOf<T>(this IList<T> collection, IList<T> subCollection)
+        {
+            int length = subCollection.Count;
+            int i = 0;
+
+            while(i + length <= collection.Count)
+            {
+                if (collection.SubCollection(i, length).SequenceEqual(subCollection))
+                {
+                    yield return i;
+                    i += length;
+                }
+                else i++;
+            }
+        }
+
+        public static IEnumerable<int> AllIndexesOf<T>(this IList<T> collection, IList<T> subCollection, Func<T, T, bool> predicate)
+        {
+            int length = subCollection.Count;
+            int i = 0;
+
+            while (i + length <= collection.Count)
+            {
+                int j = 0;
+                if (subCollection.All(t => predicate(t, collection[i + j++])))
+                {
+                    yield return i;
+                    i += length;
+                }
+                else i++;
+            }
+        }
+
+        public static IEnumerable<T> Concat<T>(this IEnumerable<T> source, T item)
+        {
+            foreach (var t in source) yield return t;
+            yield return item;
+        }
+
+        public static IEnumerable<T> TakeLast<T>(this IEnumerable<T> source, int count)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+            if (count < 0) throw new ArgumentOutOfRangeException("count");
+
+            if (count == 0) return null;
+
+            if (source is ICollection<T> collection)
+            {
+                int index = Math.Max(collection.Count - count, 0);
+                return source.SubCollection(index, -1);
+            }
+
+            var queue = new Queue<T>(count);
+
+            foreach (var t in source)
+            {
+                if (queue.Count == count) queue.Dequeue();
+                queue.Enqueue(t);
+            }
+
+            return queue.ToArray();
+        }
+
+        public static void RemoveAll<T>(this ICollection<T> source, Predicate<T> match)
+        {
+            if (source is List<T> list) list.RemoveAll(match);
+            if (source is IList<T> ilist) for (int i = ilist.Count - 1; i >= 0; i--) if (match(ilist[i])) ilist.RemoveAt(i);
+            else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
+        }
+
+        public static void AddRange<T>(this ICollection<T> source, IEnumerable<T> collection)
+        {
+            if (source is List<T> list) list.AddRange(collection);
+            else foreach (var item in collection) source.Add(item);
         }
 
         #region ObservableCollection.Sort
@@ -375,37 +653,49 @@ namespace BenLib
 
         #region IsSorted
 
-        public static bool IsSorted<T>(this IEnumerable<T> collection, IComparer<T> comparer)
+        public static bool IsSorted<T>(this IList<T> list) where T : IComparable<T>
         {
-            int collectioncount = collection.Count();
+            int listCount = list.Count;
 
-            for (int i = 0; i < collectioncount; i++)
+            for (int i = 0; i < listCount; i++)
             {
-                if (i < collectioncount - 1 && comparer.Compare(collection.ElementAt(i), collection.ElementAt(i + 1)) == 1) return false;
+                if (i < listCount - 1 && list[i].CompareTo(list[i + 1]) == 1) return false;
             }
 
             return true;
         }
 
-        public static bool IsSorted<T>(this IEnumerable<T> collection, Comparison<T> comparison)
+        public static bool IsSorted<T>(this IList<T> list, IComparer<T> comparer)
         {
-            int collectioncount = collection.Count();
+            int listCount = list.Count;
 
-            for (int i = 0; i < collectioncount; i++)
+            for (int i = 0; i < listCount; i++)
             {
-                if (i < collectioncount - 1 && comparison.Invoke(collection.ElementAt(i), collection.ElementAt(i + 1)) == 1) return false;
+                if (i < listCount - 1 && comparer.Compare(list[i], list[i + 1]) == 1) return false;
             }
 
             return true;
         }
 
-        public static bool IsSorted<T>(this IEnumerable<T> collection, int index, int count, IComparer<T> comparer)
+        public static bool IsSorted<T>(this IList<T> list, Comparison<T> comparison)
         {
-            int collectioncount = collection.Count();
+            int listCount = list.Count;
+
+            for (int i = 0; i < listCount; i++)
+            {
+                if (i < listCount - 1 && comparison.Invoke(list[i], list[i + 1]) == 1) return false;
+            }
+
+            return true;
+        }
+
+        public static bool IsSorted<T>(this IList<T> list, int index, int count, IComparer<T> comparer)
+        {
+            int listCount = list.Count;
 
             for (int i = index; i < index + count; i++)
             {
-                if (i < collectioncount - 1 && comparer.Compare(collection.ElementAt(i), collection.ElementAt(i + 1)) == 1) return false;
+                if (i < listCount - 1 && comparer.Compare(list[i], list[i + 1]) == 1) return false;
             }
 
             return true;
@@ -426,16 +716,73 @@ namespace BenLib
             if (lvi.IsSelected) { lvi.IsSelected = true; lvi.IsSelected = false; }
         }
 
-        private static List<KeyValuePair<object, object>> KeyValuePairs(this ResourceDictionary resourceDictionary)
+        private static IEnumerable<KeyValuePair<object, object>> GetKeyValuePairs(this ResourceDictionary resourceDictionary) => resourceDictionary.OfType<DictionaryEntry>().Select(entry => new KeyValuePair<object, object>(entry.Key, entry.Value)).Concat(resourceDictionary.MergedDictionaries.SelectMany(resdict => resdict.GetKeyValuePairs()));
+
+        public static Dictionary<object, object> ToDictionary(this ResourceDictionary resourceDictionary) => resourceDictionary.GetKeyValuePairs().GroupBy(kvp => kvp.Key).ToDictionary(group => group.Key, group => group.Last().Value);
+    }
+
+    public class MultiEnumerator<T> : IEnumerator<T>
+    {
+        public MultiEnumerator(params IEnumerator<T>[] enumeratorsArray) : this(enumerators: enumeratorsArray) { }
+        public MultiEnumerator(IEnumerable<IEnumerator<T>> enumerators)
         {
-            var list = new List<KeyValuePair<object, object>>();
-
-            list.AddRange(resourceDictionary.OfType<DictionaryEntry>().Select(entry => new KeyValuePair<object, object>(entry.Key, entry.Value)));
-            foreach (ResourceDictionary resdict in resourceDictionary.MergedDictionaries) list.AddRange(resdict.KeyValuePairs());
-
-            return list;
+            Enumerators = enumerators;
+            m_numeratorsEnumerator = enumerators.GetEnumerator();
+            m_numeratorsEnumerator.MoveNext();
         }
 
-        public static Dictionary<object, object> ToDictionary(this ResourceDictionary resourceDictionary) => resourceDictionary.KeyValuePairs().GroupBy(kvp => kvp.Key).ToDictionary(group => group.Key, group => group.Last().Value);
+        public IEnumerable<IEnumerator<T>> Enumerators { get; }
+        private readonly IEnumerator<IEnumerator<T>> m_numeratorsEnumerator;
+
+        public T Current => m_numeratorsEnumerator.Current.Current;
+        object IEnumerator.Current => Current;
+
+        public void Dispose()
+        {
+            foreach (var enumerator in Enumerators) enumerator.Dispose();
+            m_numeratorsEnumerator.Dispose();
+        }
+
+        public bool MoveNext()
+        {
+            if (m_numeratorsEnumerator.Current.MoveNext()) return true;
+            else if (m_numeratorsEnumerator.MoveNext()) return MoveNext();
+            else return false;
+        }
+
+        public void Reset()
+        {
+            foreach (var enumerator in Enumerators) enumerator.Reset();
+            m_numeratorsEnumerator.Reset();
+        }
+    }
+
+    public struct MultiEnumerator : IEnumerator
+    {
+        public MultiEnumerator(params IEnumerator[] enumeratorsArray) : this(enumerators: enumeratorsArray) { }
+        public MultiEnumerator(IEnumerable<IEnumerator> enumerators) : this()
+        {
+            Enumerators = enumerators;
+            m_numeratorsEnumerator = enumerators.GetEnumerator();
+            m_numeratorsEnumerator.MoveNext();
+        }
+
+        public IEnumerable<IEnumerator> Enumerators { get; }
+        private readonly IEnumerator<IEnumerator> m_numeratorsEnumerator;
+
+        public object Current => m_numeratorsEnumerator.Current.Current;
+
+        public bool MoveNext()
+        {
+            if (m_numeratorsEnumerator.Current.MoveNext()) return true;
+            else if (m_numeratorsEnumerator.MoveNext()) return MoveNext();
+            else return false;
+        }
+
+        public void Reset()
+        {
+            foreach (var enumerator in Enumerators) enumerator.Reset();
+            m_numeratorsEnumerator.Reset();
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -9,41 +10,41 @@ using System.Windows.Media;
 namespace BenLib.WPF
 {
     /// <summary>
-    /// Author : kthsu (https://github.com/kthsu/HighlightableTextBlock/)
+    /// Authors : kthsu (https://github.com/kthsu/HighlightableTextBlock/) and BenNat
     /// </summary>
     public class HighlightableTextBlock
     {
-        #region Bold
+        #region FontWeight
 
-        public static bool GetBold(DependencyObject obj)
+        public static FontWeight GetFontWeight(DependencyObject obj)
         {
-            return (bool)obj.GetValue(BoldProperty);
+            return (FontWeight)obj.GetValue(FontWeightProperty);
         }
 
-        public static void SetBold(DependencyObject obj, bool value)
+        public static void SetFontWeight(DependencyObject obj, FontWeight value)
         {
-            obj.SetValue(BoldProperty, value);
+            obj.SetValue(FontWeightProperty, value);
         }
 
-        // Using a DependencyProperty as the backing store for Bold.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty BoldProperty = DependencyProperty.RegisterAttached("Bold", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false, Refresh));
+        // Using a DependencyProperty as the backing store for FontWeight.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty FontWeightProperty = DependencyProperty.RegisterAttached("FontWeight", typeof(FontWeight), typeof(HighlightableTextBlock), new PropertyMetadata(FontWeights.Regular, Refresh));
 
         #endregion
 
-        #region Italic
+        #region FontStyle
 
-        public static bool GetItalic(DependencyObject obj)
+        public static FontStyle GetFontStyle(DependencyObject obj)
         {
-            return (bool)obj.GetValue(ItalicProperty);
+            return (FontStyle)obj.GetValue(FontStyleProperty);
         }
 
-        public static void SetItalic(DependencyObject obj, bool value)
+        public static void SetFontStyle(DependencyObject obj, FontStyle value)
         {
-            obj.SetValue(ItalicProperty, value);
+            obj.SetValue(FontStyleProperty, value);
         }
 
-        // Using a DependencyProperty as the backing store for Italic.  This enables animation, styling, binding, etc...
-        public static readonly DependencyProperty ItalicProperty = DependencyProperty.RegisterAttached("Italic", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false, Refresh));
+        // Using a DependencyProperty as the backing store for FontStyle.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty FontStyleProperty = DependencyProperty.RegisterAttached("FontStyle", typeof(FontStyle), typeof(HighlightableTextBlock), new PropertyMetadata(FontStyles.Normal, Refresh));
 
         #endregion
 
@@ -158,6 +159,24 @@ namespace BenLib.WPF
 
         #endregion
 
+        #region CaseSensitive
+
+        public static bool GetCaseSensitive(DependencyObject obj) => (bool)obj.GetValue(CaseSensitiveProperty);
+        public static void SetCaseSensitive(DependencyObject obj, bool value) => obj.SetValue(CaseSensitiveProperty, value);
+
+        public static readonly DependencyProperty CaseSensitiveProperty = DependencyProperty.RegisterAttached("CaseSensitive", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false, Refresh));
+
+        #endregion
+
+        #region IsRegex
+
+        public static bool GetIsRegex(DependencyObject obj) => (bool)obj.GetValue(IsRegexProperty);
+        public static void SetIsRegex(DependencyObject obj, bool value) => obj.SetValue(IsRegexProperty, value);
+
+        public static readonly DependencyProperty IsRegexProperty = DependencyProperty.RegisterAttached("IsRegex", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false, Refresh));
+
+        #endregion
+
         #region Methods
 
         private static void Refresh(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -171,13 +190,13 @@ namespace BenLib.WPF
 
             string text = textblock.Text;
 
-            if (textblock.GetBindingExpression(HighlightableTextBlock.InternalTextProperty) == null)
+            if (textblock.GetBindingExpression(InternalTextProperty) == null)
             {
                 var textBinding = textblock.GetBindingExpression(TextBlock.TextProperty);
 
                 if (textBinding != null)
                 {
-                    textblock.SetBinding(HighlightableTextBlock.InternalTextProperty, textBinding.ParentBindingBase);
+                    textblock.SetBinding(InternalTextProperty, textBinding.ParentBindingBase);
 
                     var propertyDescriptor = DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
 
@@ -194,52 +213,61 @@ namespace BenLib.WPF
                 }
             }
 
-            if (!String.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text))
             {
                 SetIsBusy(textblock, true);
 
                 var toHighlight = GetHightlightText(textblock);
 
-                if (!String.IsNullOrEmpty(toHighlight))
+                if (!string.IsNullOrEmpty(toHighlight))
                 {
-                    var matches = Regex.Split(text, String.Format("({0})", Regex.Escape(toHighlight)), RegexOptions.IgnoreCase);
-
                     textblock.Inlines.Clear();
 
                     var highlightBrush = GetHighlightBrush(textblock);
                     var highlightTextBrush = GetHighlightTextBrush(textblock);
 
-                    foreach (var subString in matches)
+                    foreach (var match in GetMatches())
                     {
-                        if (String.Compare(subString, toHighlight, true) == 0)
+                        if (match.Match)
                         {
-                            var formattedText = new Run(subString)
+                            var formattedText = new Run(match.Text)
                             {
                                 Background = highlightBrush,
                                 Foreground = highlightTextBrush,
                             };
 
-                            if (GetBold(textblock))
-                            {
-                                formattedText.FontWeight = FontWeights.Bold;
-                            }
-
-                            if (GetItalic(textblock))
-                            {
-                                formattedText.FontStyle = FontStyles.Italic;
-                            }
-
-                            if (GetUnderline(textblock))
-                            {
-                                formattedText.TextDecorations.Add(TextDecorations.Underline);
-                            }
+                            formattedText.FontWeight = GetFontWeight(textblock);
+                            formattedText.FontStyle = GetFontStyle(textblock);
+                            if (GetUnderline(textblock)) formattedText.TextDecorations.Add(TextDecorations.Underline);
 
                             textblock.Inlines.Add(formattedText);
                         }
-                        else
+                        else textblock.Inlines.Add(match.Text);
+                    }
+
+                    IEnumerable<(string Text, bool Match)> GetMatches()
+                    {
+                        MatchCollection matches = null;
+                        try { matches = Regex.Matches(text, GetIsRegex(textblock) ? toHighlight : $"({Regex.Escape(toHighlight)})", GetCaseSensitive(textblock) ? RegexOptions.None : RegexOptions.IgnoreCase); }
+                        catch (ArgumentException) { }
+
+                        if (matches == null)
                         {
-                            textblock.Inlines.Add(subString);
+                            yield return (text, false);
+                            yield break;
                         }
+
+                        var previous = Match.Empty;
+                        for (int i = 0; i < matches.Count; i++)
+                        {
+                            var match = matches[i];
+                            int previousLastIndex = previous.Index + previous.Length;
+                            if (previousLastIndex < match.Index) yield return (text.Substring(previousLastIndex, match.Index - previousLastIndex), false);
+                            if (match.Length > 0) yield return (text.Substring(match.Index, match.Length), true);
+                            previous = match;
+                        }
+                        int lastIndex = previous.Index + previous.Length;
+                        if (lastIndex < text.Length) yield return (text.Substring(lastIndex, text.Length - lastIndex), false);
                     }
                 }
                 else

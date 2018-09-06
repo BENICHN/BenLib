@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Diagnostics;
 using System.Windows.Input;
-using System.Runtime.InteropServices;
+using System.Windows.Threading;
 
 namespace BenLib
 {
@@ -98,6 +96,14 @@ namespace BenLib
             else return default;
         }
 
+        public static void SetInterval(Action action, int milliseconds)
+        {
+            var dt = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(milliseconds) };
+            dt.Tick += (sender, e) => action();
+
+            dt.Start();
+        }
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
         [DllImport("kernel32.dll")]
@@ -109,17 +115,17 @@ namespace BenLib
     }
 
     [Flags]
-    public enum ThreadAccess : int
+    public enum ThreadAccess
     {
-        TERMINATE = (0x0001),
-        SUSPEND_RESUME = (0x0002),
-        GET_CONTEXT = (0x0008),
-        SET_CONTEXT = (0x0010),
-        SET_INFORMATION = (0x0020),
-        QUERY_INFORMATION = (0x0040),
-        SET_THREAD_TOKEN = (0x0080),
-        IMPERSONATE = (0x0100),
-        DIRECT_IMPERSONATION = (0x0200)
+        TERMINATE = 0x0001,
+        SUSPEND_RESUME = 0x0002,
+        GET_CONTEXT = 0x0008,
+        SET_CONTEXT = 0x0010,
+        SET_INFORMATION = 0x0020,
+        QUERY_INFORMATION = 0x0040,
+        SET_THREAD_TOKEN = 0x0080,
+        IMPERSONATE = 0x0100,
+        DIRECT_IMPERSONATION = 0x0200
     }
 
     public static partial class Extensions
@@ -189,27 +195,9 @@ namespace BenLib
             return new TryResult(true);
         }
 
-        public static Task WithCancellation(this Task task, CancellationToken cancellationToken)
-        {
-            return task.IsCompleted // fast-path optimization
-                ? task
-                : task.ContinueWith(
-                    completedTask => completedTask.GetAwaiter().GetResult(),
-                    cancellationToken,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
-        }
+        public static Task WithCancellation(this Task task, CancellationToken cancellationToken) => task.IsCompleted ? task : task.ContinueWith(completedTask => { }, cancellationToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
-        public static Task<T> WithCancellation<T>(this Task<T> task, CancellationToken cancellationToken)
-        {
-            return task.IsCompleted // fast-path optimization
-                ? task
-                : task.ContinueWith(
-                    completedTask => completedTask.GetAwaiter().GetResult(),
-                    cancellationToken,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
-        }
+        public static Task<T> WithCancellation<T>(this Task<T> task, CancellationToken cancellationToken) => task.IsCompleted ? task : task.ContinueWith(completedTask => completedTask.Result, cancellationToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
         public static async Task WithTimeout(this Task task, int millisecondsTimeout)
         {
@@ -220,17 +208,46 @@ namespace BenLib
         {
             if (task == await Task.WhenAny(task, Delay<TResult>(millisecondsTimeout))) return task.Result;
             else throw new TimeoutException();
-
-            async Task<T> Delay<T>(int millisecondsDelay)
-            {
-                await Task.Delay(millisecondsDelay);
-                return default;
-            }
         }
+
+        public static async Task WithFramesTimeout(this Task task, int framesCountTimeout)
+        {
+            if (task != await Task.WhenAny(task, Timing.FramesDelay(framesCountTimeout))) throw new TimeoutException();
+        }
+
+        public static async Task<TResult> WithFramesTimeout<TResult>(this Task<TResult> task, int framesCountTimeout)
+        {
+            if (task == await Task.WhenAny(task, FramesDelay<TResult>(framesCountTimeout))) return task.Result;
+            else throw new TimeoutException();
+        }
+
+        private static async Task<T> Delay<T>(int millisecondsDelay)
+        {
+            await Task.Delay(millisecondsDelay);
+            return default;
+        }
+
+        private static async Task<T> FramesDelay<T>(int millisecondsDelay)
+        {
+            await Timing.FramesDelay(millisecondsDelay);
+            return default;
+        }
+
+        public static Task AtLeastTime(this Task task, int millisecondsDelay) => Task.WhenAll(task, Task.Delay(millisecondsDelay));
+        public static async Task<TResult> AtLeastTime<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAll(task, Delay<TResult>(millisecondsDelay)))[0];
+
+        public static Task AtMostTime(this Task task, int millisecondsDelay) => Task.WhenAny(task, Task.Delay(millisecondsDelay));
+        public static async Task<TResult> AtMostTime<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAny(task, Delay<TResult>(millisecondsDelay))).Result;
+
+        public static Task AtLeast(this Task task, int framesCountDelay) => Task.WhenAll(task, Timing.FramesDelay(framesCountDelay));
+        public static async Task<TResult> AtLeast<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAll(task, FramesDelay<TResult>(millisecondsDelay)))[0];
+
+        public static Task AtMost(this Task task, int framesCountDelay) => Task.WhenAny(task, Timing.FramesDelay(framesCountDelay));
+        public static async Task<TResult> AtMost<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAny(task, FramesDelay<TResult>(millisecondsDelay))).Result;
 
         public static void Suspend(this Process process)
         {
-            if (process.HasExited || process.ProcessName == String.Empty) return;
+            if (process.HasExited || process.ProcessName == string.Empty) return;
 
             foreach (ProcessThread pT in process.Threads)
             {
@@ -256,7 +273,7 @@ namespace BenLib
 
         public static void Resume(this Process process)
         {
-            if (process.HasExited || process.ProcessName == String.Empty) return;
+            if (process.HasExited || process.ProcessName == string.Empty) return;
 
             foreach (ProcessThread pT in process.Threads)
             {
@@ -288,8 +305,8 @@ namespace BenLib
     {
         #region Fields
 
-        readonly Action<T> _execute = null;
-        readonly Predicate<T> _canExecute = null;
+        private readonly Action<T> _execute = null;
+        private readonly Predicate<T> _canExecute = null;
 
         #endregion
 
@@ -422,8 +439,8 @@ namespace BenLib
 
     public class CommandHandler : ICommand
     {
-        private Action<object> _action;
-        private bool _canExecute;
+        private readonly Action<object> _action;
+        private readonly bool _canExecute;
         public CommandHandler(Action<object> action, bool canExecute = true)
         {
             _action = action;

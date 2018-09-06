@@ -11,11 +11,11 @@ namespace BenLib
 {
     public class Literal
     {
-        public static Regex Integrer = new Regex(@"^(\-)?\d+$");
-        public static Regex PreviewIntegrer = new Regex(@"^(\-)?(\d+)?$");
+        public static Regex Integer = new Regex(@"^(\-)?\d+$");
+        public static Regex PreviewInteger = new Regex(@"^(\-)?(\d+)?$");
 
-        public static Regex UnsignedIntegrer = new Regex(@"^\d+$");
-        public static Regex PreviewUnsignedIntegrer = new Regex(@"^(\d+)?$");
+        public static Regex UnsignedInteger = new Regex(@"^\d+$");
+        public static Regex PreviewUnsignedInteger = new Regex(@"^(\d+)?$");
 
         public static Regex Double = new Regex(@"^(\-)?\d+((\.|,)\d+)?(E(\+|\-)?\d+)?$");
         public static Regex PreviewDouble = new Regex(@"^(\-)?(\d+(((\.|,)(\d+)?)?(E(\+|\-)?(\d+)?)?)?)?$");
@@ -140,14 +140,14 @@ namespace BenLib
             return s;
         }
 
-        public static bool IsEmpty(this string s) => s == String.Empty ? true : false;
+        public static bool IsEmpty(this string s) => s == string.Empty ? true : false;
 
-        public static bool IsNullOrEmpty(this string s) => String.IsNullOrEmpty(s);
-        public static bool IsNullOrWhiteSpace(this string s) => String.IsNullOrWhiteSpace(s);
+        public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
+        public static bool IsNullOrWhiteSpace(this string s) => string.IsNullOrWhiteSpace(s);
 
         public static List<int> AllIndexesOf(this string str, string value)
         {
-            if (String.IsNullOrEmpty(value)) throw new ArgumentException("the string to find may not be empty", "value");
+            if (string.IsNullOrEmpty(value)) throw new ArgumentException("the string to find may not be empty", "value");
             List<int> indexes = new List<int>();
             for (int index = 0; ; index += value.Length)
             {
@@ -159,11 +159,11 @@ namespace BenLib
 
         #region Is
 
-        public static bool IsIntegrer(this string s) => Literal.Integrer.IsMatch(s);
+        public static bool IsInteger(this string s) => Literal.Integer.IsMatch(s);
 
         public static bool IsDecimalNumber(this string s) => Literal.Double.IsMatch(s);
 
-        #region Integrer
+        #region Integer
 
         #region Signed
 
@@ -299,7 +299,7 @@ namespace BenLib
             if (d == 0) return "0";
             StringBuilder sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
-            maxDecimalPlaces.Times(() => sb.Append('#'));
+            maxDecimalPlaces.Times(i => sb.Append('#'));
             return d.ToString(sb.ToString());
         }
 
@@ -309,7 +309,7 @@ namespace BenLib
             if (d == 0) return "0";
             StringBuilder sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
-            maxDecimalPlaces.Times(() => sb.Append('#'));
+            maxDecimalPlaces.Times(i => sb.Append('#'));
             return d.ToString(sb.ToString());
         }
 
@@ -319,7 +319,7 @@ namespace BenLib
             if (f == 0) return "0";
             StringBuilder sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
-            maxDecimalPlaces.Times(() => sb.Append('#'));
+            maxDecimalPlaces.Times(i => sb.Append('#'));
             return f.ToString(sb.ToString());
         }
 
@@ -327,7 +327,7 @@ namespace BenLib
 
         #region Parse
 
-        #region Integrer
+        #region Integer
 
         #region Signed
 

@@ -49,7 +49,7 @@ namespace BenLib.WPF
         /// <summary>
         /// Indique si <see cref='Text'/> est vide.
         /// </summary>
-        public bool Empty { get => Text.IsNullOrEmpty(); set => Text = String.Empty; }
+        public bool Empty { get => Text.IsNullOrEmpty(); set => Text = string.Empty; }
 
         /// <summary>
         /// Indique si le changement de texte doit être annulé quand celui-ci est vide.
@@ -65,10 +65,9 @@ namespace BenLib.WPF
         public SwitchableTextBox()
         {
             InitializeComponent();
-            Text = String.Empty;
+            Text = string.Empty;
             //Mouse.Capture(this, CaptureMode.SubTree);
             //AddHandler(Mouse.PreviewMouseDownOutsideCapturedElementEvent, new MouseButtonEventHandler(HandleClickOutsideOfControl), true);
-            tb.TextChanged += Tb_TextChanged;
             DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(lb, (sender, e) => { SetValue(TextProperty, lb.Text); });
             DependencyPropertyDescriptor.FromProperty(FinalTextProperty, typeof(SwitchableTextBox)).AddValueChanged(this, (sender, e) =>
             {
@@ -76,8 +75,6 @@ namespace BenLib.WPF
                 SetText();
             });
         }
-
-        private void Tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
 
         #endregion
 
@@ -89,6 +86,8 @@ namespace BenLib.WPF
             gd.Focus();
             ReleaseMouseCapture();
         }*/
+
+        private void tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
 
         private void lb_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -143,8 +142,8 @@ namespace BenLib.WPF
             {
                 switch (ContentType)
                 {
-                    case ContentTypes.Integrer:
-                    case ContentTypes.UnsignedIntegrer:
+                    case ContentTypes.Integer:
+                    case ContentTypes.UnsignedInteger:
                         {
                             try
                             {
@@ -154,7 +153,7 @@ namespace BenLib.WPF
                             {
                                 if (!AllowedStrings.Contains(Text))
                                 {
-                                    MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+                                    MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
                                     return false;
                                 }
                             }
@@ -176,7 +175,7 @@ namespace BenLib.WPF
 
                                     if (!AllowedStrings.Contains(Text))
                                     {
-                                        MessageBox.Show(ex.Message, String.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+                                        MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
                                         return false;
                                     }
                                 }

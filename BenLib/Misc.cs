@@ -1,29 +1,12 @@
 ﻿using System;
-using System.ComponentModel;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Linq;
 using System.Security.Principal;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
-using System.Windows.Threading;
-using System.Diagnostics;
-using System.Threading;
-using System.Security.AccessControl;
 using System.Threading.Tasks;
 using System.Reflection;
 using System.IO;
-using System.IO.Compression;
 using IniParser;
 using IniParser.Model;
 using System.Text;
-using IWshRuntimeLibrary;
 
 namespace BenLib
 {
@@ -39,9 +22,9 @@ namespace BenLib
 
     public static partial class Extensions
     {
-        public static void Times(this int count, Action action)
+        public static void Times(this int count, Action<int> action)
         {
-            for (int i = 0; i < count; i++) action();
+            for (int i = 0; i < count; i++) action(i);
         }
 
         public static void ExtractEmbeddedResource(this Assembly assembly, string outputPath, string resource)
@@ -57,6 +40,8 @@ namespace BenLib
         }
 
         public static object GetPropValue(this object src, string propName) => src.GetType().GetProperty(propName).GetValue(src, null);
+
+        public static void SetPropValue(this object src, string propName, object value) => src.GetType().GetProperty(propName).SetValue(src, value);
 
         public static TryResult TryAccess(this object src, string propName)
         {
@@ -119,28 +104,6 @@ namespace BenLib
 
             return localTime;
         }
-
-        #region Pow
-
-        public static double Pow(this double x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this int x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this decimal x, double y) => Math.Pow((double)x, y);
-
-        public static double Pow(this long x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this float x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this short x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this uint x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this ushort x, double y) => Math.Pow(x, y);
-
-        public static double Pow(this ulong x, double y) => Math.Pow(x, y);
-
-        #endregion
     }
 
     public struct TryResult
@@ -158,4 +121,9 @@ namespace BenLib
     {
         public int Compare(T x, T y) => y.CompareTo(x);
     }
+}
+
+namespace System
+{
+    public interface ICloneable<T> { T Clone(); }
 }

@@ -1,12 +1,64 @@
 ﻿using System;
 using System.Text;
 using System.Globalization;
+using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace BenLib
 {
     public class Timing
     {
-        
+        public static Task FramesDelay(int framesCount)
+        {
+            var ellapsedFrames = 0;
+            var tcs = new TaskCompletionSource<object>();
+
+            void SpendEvent(object sender, EventArgs e)
+            {
+                ellapsedFrames++;
+
+                if (ellapsedFrames >= framesCount)
+                {
+                    CompositionTarget.Rendering -= SpendEvent;
+                    tcs.TrySetResult(null);
+                }
+            }
+
+            CompositionTarget.Rendering += SpendEvent;
+
+            return tcs.Task;
+        }
+    }
+
+    public static partial class Extensions
+    {
+        public static TimeSpan Multiply(this TimeSpan timeSpan, double factor) => TimeSpan.FromTicks((long)(timeSpan.Ticks * factor));
+    }
+
+    public class FrameStopwatch
+    {
+        public FrameStopwatch(int fps = 60, long elapsedFrames = 0)
+        {
+            FPS = fps;
+            ElapsedFrames = elapsedFrames;
+        }
+
+        ~FrameStopwatch() => CompositionTarget.Rendering -= SpendEvent;
+
+        public int FPS { get; set; }
+        public long ElapsedFrames { get; private set; }
+
+        public TimeSpan Elapsed => TimeSpan.FromMilliseconds(ElapsedMilliseconds);
+        public double ElapsedMilliseconds => 1000 * ElapsedFrames / FPS;
+
+        public void Spend(long framesCount = 1) => ElapsedFrames += framesCount;
+
+        public void Start() => CompositionTarget.Rendering += SpendEvent;
+        public void Stop() => CompositionTarget.Rendering -= SpendEvent;
+
+        public void Reset() => ElapsedFrames = 0;
+
+        void SpendEvent(object sender, EventArgs e) => Spend();
     }
 
     /// <summary>
@@ -112,7 +164,7 @@ namespace BenLib
 
         public int CompareTo(Time value) => TotalSeconds.CompareTo(value.TotalSeconds);
 
-        public override string ToString() => String.Format("{0:00}", Hours) + ":" + String.Format("{0:00}", Minutes) + ":" + Seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }); //return 02:01:10
+        public override string ToString() => string.Format("{0:00}", Hours) + ":" + string.Format("{0:00}", Minutes) + ":" + Seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }); //return 02:01:10
 
         public string ToString(string format)
         {
@@ -167,30 +219,30 @@ namespace BenLib
 
             if (h > 0)
             {
-                result.Append(String.Format(hs.ToString(), Hours));
+                result.Append(string.Format(hs.ToString(), Hours));
                 if (m > 0)
                 {
-                    result.Append(":" + String.Format(ms.ToString(), Minutes));
+                    result.Append(":" + string.Format(ms.ToString(), Minutes));
                     if (tts)
                     {
                         result.Append(":" + seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
                     }
                     else if (s > 0)
                     {
-                        result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
+                        result.Append(":" + string.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
                     }
                 }
             }
             else if (m > 0)
             {
-                result.Append(String.Format(ms.ToString(), TotalMinutes));
+                result.Append(string.Format(ms.ToString(), TotalMinutes));
                 if (tts)
                 {
                     result.Append(":" + seconds.ToString(new NumberFormatInfo() { NumberDecimalSeparator = "." }));
                 }
                 else if (s > 0)
                 {
-                    result.Append(":" + String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
+                    result.Append(":" + string.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
                 }
             }
             else if (tts)
@@ -199,7 +251,7 @@ namespace BenLib
             }
             else if (s > 0)
             {
-                result.Append(String.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
+                result.Append(string.Format(new NumberFormatInfo() { NumberDecimalSeparator = "." }, ss.ToString(), seconds));
             }
 
             return result.ToString();
@@ -210,7 +262,7 @@ namespace BenLib
             if (unlimitedAtZero && maxDecimalPlaces == 0) return ToString();
             StringBuilder sb = new StringBuilder("hh:mm:ss");
             if (maxDecimalPlaces > 0) sb.Append('.');
-            maxDecimalPlaces.Times(() => sb.Append('s'));
+            maxDecimalPlaces.Times(i => sb.Append('s'));
             return ToString(sb.ToString());
         }
 

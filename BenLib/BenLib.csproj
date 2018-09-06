@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BenLib</RootNamespace>
     <AssemblyName>BenLib</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -48,6 +48,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
@@ -62,17 +63,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Animating.cs" />
     <Compile Include="ClipboardNotification.cs" />
     <Compile Include="Collections.cs" />
     <Compile Include="EventArgs.cs" />
     <Compile Include="Hexadecimal.cs" />
     <Compile Include="Imaging.cs" />
     <Compile Include="IO.cs" />
+    <Compile Include="LinearEquation.cs" />
     <Compile Include="Literal.cs" />
     <Compile Include="MemoryTributary.cs" />
     <Compile Include="MessageBoxManager.cs" />
     <Compile Include="Misc.cs" />
     <Compile Include="Network.cs" />
+    <Compile Include="Num.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Threading.cs" />
     <Compile Include="Timing.cs" />
