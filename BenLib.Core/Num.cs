@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
+using Vector = System.Windows.Vector;
 
 namespace BenLib
 {
@@ -158,45 +159,14 @@ namespace BenLib
             }
         }
 
-        public static Color Interpolate(Color start, Color end, double progress) => start * (float)(1 - progress) + end * (float)progress;
+        /*public static Color Interpolate(Color start, Color end, double progress) => start * (1 - progress) + end * progress;
         public static IEnumerable<Color> Interpolate(IList<Color> start, IList<Color> end, double progress)
         {
             foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
             {
                 yield return Interpolate(from, to, progress);
             }
-        }
-
-        public static Pen Interpolate(Pen start, Pen end, double progress)
-        {
-            var from = start ?? new Pen(Brushes.Transparent, 0);
-            var to = end ?? new Pen(Brushes.Transparent, 0);
-            var brush = Interpolate(from.Brush, to.Brush, progress);
-            if (brush != null) return new Pen(brush, Interpolate(from.Thickness, to.Thickness, progress));
-            else return null;
-        }
-        public static IEnumerable<Pen> Interpolate(IList<Pen> start, IList<Pen> end, double progress)
-        {
-            foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
-            {
-                yield return Interpolate(from, to, progress);
-            }
-        }
-
-        public static Brush Interpolate(Brush start, Brush end, double progress)
-        {
-            var from = start ?? Brushes.Transparent;
-            var to = end ?? Brushes.Transparent;
-            if (from is SolidColorBrush fromC && to is SolidColorBrush toC) return new SolidColorBrush(Interpolate(fromC.Color, toC.Color, progress)) { Opacity = Interpolate(from.Opacity, to.Opacity, progress) };
-            else return null;
-        }
-        public static IEnumerable<Brush> Interpolate(IList<Brush> start, IList<Brush> end, double progress)
-        {
-            foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
-            {
-                yield return Interpolate(from, to, progress);
-            }
-        }
+        }*/
 
         public static Point Interpolate(Point start, Point end, double progress) => new Point(Interpolate(start.X, end.X, progress), Interpolate(start.Y, end.Y, progress));
         public static IEnumerable<Point> Interpolate(IList<Point> start, IList<Point> end, double progress)

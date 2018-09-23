@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Windows.Media;
-using System.Collections.Generic;
-using System.Windows;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace BenLib
 {
@@ -426,24 +424,6 @@ namespace BenLib
         {
             try { return bool.Parse(s); }
             catch { return null; }
-        }
-
-        public static Color? ToColor(this string s)
-        {
-            try { return (Color)ColorConverter.ConvertFromString(s); }
-            catch { return null; }
-        }
-
-        public static GridLength? ToGridLength(this string s)
-        {
-            if (s.IsNullOrEmpty()) return null;
-            if (s.Equals("Auto", StringComparison.OrdinalIgnoreCase)) return new GridLength(1, GridUnitType.Auto);
-            if (s == "*") return new GridLength(1, GridUnitType.Star);
-
-            var value = s.TrimEnd('*').ToDouble();
-            if (value != null) return new GridLength((double)value, s.Contains('*') ? GridUnitType.Star : GridUnitType.Pixel);
-
-            return null;
         }
 
         public static TEnum? ToEnum<TEnum>(this string s) where TEnum : struct
