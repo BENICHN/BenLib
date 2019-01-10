@@ -10,7 +10,7 @@ namespace System.Windows.Controls
     /// <summary>
     /// Author : Alex C. Duma (https://www.codeproject.com/Articles/18399/Localizing-System-MessageBox)
     /// </summary>
-	public class MessageBoxManager
+	public static class MessageBoxManager
 	{
         private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
         private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);

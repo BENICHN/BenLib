@@ -10,7 +10,7 @@ namespace System.Windows.Forms
     /// <summary>
     /// Author : Alex C. Duma (https://www.codeproject.com/Articles/18399/Localizing-System-MessageBox)
     /// </summary>
-	public class MessageBoxManager
+	public static class MessageBoxManager
 	{
         private delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
         private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
@@ -78,8 +78,8 @@ namespace System.Windows.Forms
 			public IntPtr hwnd;
 		};
 
-		private static HookProc hookProc;
-        private static EnumChildProc enumProc;
+		private static readonly HookProc hookProc;
+        private static readonly EnumChildProc enumProc;
         [ThreadStatic]
 		private static IntPtr hHook;
         [ThreadStatic]

@@ -15,7 +15,7 @@ using Z.Linq;
 
 namespace BenLib
 {
-    public class IO
+    public static class IO
     {
         public static string[] ReservedFilenames { get; } = { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
 
@@ -381,23 +381,27 @@ namespace BenLib
             if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
             else stream.Position += offset;
 
-            return (byte)stream.ReadByte();
+            var result = new byte[1];
+
+            stream.Read(result, 0, 1);
+
+            return result[0];
         }
 
         public static byte[] ReadBytes(this Stream stream, long offset, int count, bool postitonZero = true)
         {
-            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
-            var result = new byte[maxCount];
-
             if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
             else stream.Position += offset;
+
+            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            var result = new byte[maxCount];
 
             stream.Read(result, 0, maxCount);
 
             return result;
         }
 
-        public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
             var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
             var result = new byte[maxCount];
@@ -410,28 +414,28 @@ namespace BenLib
             return result;
         }
 
-        public static byte[] ReadEndian(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static byte[] ReadEndian(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true)
         {
             var bytes = stream.ReadBytes(offset, count, postitonZero);
             if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
             else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
         }
 
-        public static async Task<byte[]> ReadEndianAsync(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static async Task<byte[]> ReadEndianAsync(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
-            var bytes = await stream.ReadBytesAsync(offset, count, default, postitonZero);
+            var bytes = await stream.ReadBytesAsync(offset, count, postitonZero);
             if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
             else return !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
         }
 
-        public static byte[] PeekEndian(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static byte[] PeekEndian(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true)
         {
             var bytes = stream.PeekBytes(offset, count, postitonZero);
             if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
             else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
         }
 
-        public static async Task<byte[]> PeekEndianAsync(this Stream stream, long offset, int count, bool littleEndian, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static async Task<byte[]> PeekEndianAsync(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
             var bytes = await stream.PeekBytesAsync(offset, count, default, postitonZero);
             if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
@@ -461,10 +465,10 @@ namespace BenLib
         public static Task<byte[]> ReadAllBytesAsync(this Stream stream, CancellationToken cancellationToken = default)
         {
             if (stream.Length > int.MaxValue) throw new IOException("Le fichier est trop long. Cette opération est actuellement limitée aux fichiers de prise en charge de taille inférieure à 2 gigaoctets.");
-            return stream.ReadBytesAsync(0, (int)stream.Length, cancellationToken);
+            return stream.ReadBytesAsync(0, (int)stream.Length, true, cancellationToken);
         }
 
-        public static void CopyTo(this Stream source, Stream destination, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
+        public static void CopyTo(this Stream source, Stream destination, long offset, int count, bool postitonZero = true)
         {
             byte[] buffer = new byte[81920];
             int read;

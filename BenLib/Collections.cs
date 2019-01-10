@@ -1,27 +1,27 @@
 ﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Security.Principal;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
-using System.Diagnostics;
-using System.Threading;
-using System.IO;
 
 namespace BenLib
 {
-    public class Collections
+    public static class Collections
     {
         public static IEnumerable<T> CreateFilledCollection<T>(int count) where T : new()
         {
@@ -39,6 +39,13 @@ namespace BenLib
             decimal end = start + length;
             for (decimal i = start; i < end; i += step) yield return i;
         }
+
+        public static IEnumerable<int> Range(int start, int count) { for (int i = start; i < start + count; i++) yield return i; }
+        public static IEnumerable<uint> Range(uint start, uint count) { for (uint i = start; i < start + count; i++) yield return i; }
+        public static IEnumerable<short> Range(short start, short count) { for (short i = start; i < start + count; i++) yield return i; }
+        public static IEnumerable<ushort> Range(ushort start, ushort count) { for (ushort i = start; i < start + count; i++) yield return i; }
+        public static IEnumerable<long> Range(long start, long count) { for (long i = start; i < start + count; i++) yield return i; }
+        public static IEnumerable<ulong> Range(ulong start, ulong count) { for (ulong i = start; i < start + count; i++) yield return i; }
     }
 
     /// <summary>
@@ -188,6 +195,22 @@ namespace BenLib
 
                     yield return enumerator.Current;
                 }
+            }
+        }
+
+        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, IntInterval interval)
+        {
+            var enumerator = source.GetEnumerator();
+            for (int i = 0; i < interval.Index; i++) { if (!enumerator.MoveNext()) throw new ArgumentOutOfRangeException("source"); }
+            for (int i = interval.Index; interval.ToInfinity ? true : i < interval.LastIndex; i++)
+            {
+                if (!enumerator.MoveNext())
+                {
+                    if (!interval.ToInfinity) throw new ArgumentOutOfRangeException("source");
+                    break;
+                }
+
+                if (interval.Contains(i)) yield return enumerator.Current;
             }
         }
 
@@ -476,7 +499,7 @@ namespace BenLib
             int length = subCollection.Count;
             int i = 0;
 
-            while(i + length <= collection.Count)
+            while (i + length <= collection.Count)
             {
                 if (collection.SubCollection(i, length).SequenceEqual(subCollection))
                 {
@@ -538,7 +561,7 @@ namespace BenLib
         {
             if (source is List<T> list) list.RemoveAll(match);
             if (source is IList<T> ilist) for (int i = ilist.Count - 1; i >= 0; i--) if (match(ilist[i])) ilist.RemoveAt(i);
-            else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
+                    else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
         }
 
         public static void AddRange<T>(this ICollection<T> source, IEnumerable<T> collection)
@@ -719,9 +742,26 @@ namespace BenLib
         private static IEnumerable<KeyValuePair<object, object>> GetKeyValuePairs(this ResourceDictionary resourceDictionary) => resourceDictionary.OfType<DictionaryEntry>().Select(entry => new KeyValuePair<object, object>(entry.Key, entry.Value)).Concat(resourceDictionary.MergedDictionaries.SelectMany(resdict => resdict.GetKeyValuePairs()));
 
         public static Dictionary<object, object> ToDictionary(this ResourceDictionary resourceDictionary) => resourceDictionary.GetKeyValuePairs().GroupBy(kvp => kvp.Key).ToDictionary(group => group.Key, group => group.Last().Value);
+
+        public static IEnumerable<double> Operate(this IEnumerable<double> source, IEnumerable<double> values, Func<double, double, double> operation)
+        {
+            var valuesEnumerator = values.GetEnumerator();
+            foreach (double val in source)
+            {
+                valuesEnumerator.MoveNext();
+                yield return operation(val, valuesEnumerator.Current);
+            }
+        }
+        public static IEnumerable<double> Operate(this IEnumerable<double> source, double value, Func<double, double, double> operation) { foreach (double val in source) yield return operation(val, value); }
+
+        public static void Enumerate<T>(this IEnumerable<T> source)
+        {
+            var enumerator = source.GetEnumerator();
+            while (enumerator.MoveNext()) ;
+        }
     }
 
-    public class MultiEnumerator<T> : IEnumerator<T>
+    public struct MultiEnumerator<T> : IEnumerator<T>
     {
         public MultiEnumerator(params IEnumerator<T>[] enumeratorsArray) : this(enumerators: enumeratorsArray) { }
         public MultiEnumerator(IEnumerable<IEnumerator<T>> enumerators)

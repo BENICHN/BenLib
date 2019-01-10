@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Windows;
+using static BenLib.Literal;
 
 namespace BenLib
 {
     /// <summary>
-    /// Représente une équation cartésienne d'une droite
+    /// Représente une équation cartésienne de droite
     /// </summary>
     public struct LinearEquation
     {
@@ -77,7 +78,7 @@ namespace BenLib
         /// <summary>
         /// Convertit la valeur réduite de cette instance en sa représentation équivalente sous forme de chaîne
         /// </summary>
-        /// <returns>Représentation sous forme de chaîne de la valeur de cette instance</returns>
+        /// <returns>Représentation sous forme de chaîne de la valeur réduite de cette instance</returns>
         public override string ToString() => ToString(true);
 
         /// <summary>
@@ -97,10 +98,10 @@ namespace BenLib
                 {
                     double m = -A / B;
                     double p = -C / B;
-                    return "y = " + Literal.CoefsToString((m, "x"), (p, string.Empty));
+                    return "y = " + CoefsToString(true, (m, "x"), (p, string.Empty));
                 }
             }
-            else return Literal.CoefsToString((A, "x"), (B, "y"), (C, string.Empty)) + " = 0";
+            else return CoefsToString(true, (A, "x"), (B, "y"), (C, string.Empty)) + " = 0";
         }
 
         /// <summary>

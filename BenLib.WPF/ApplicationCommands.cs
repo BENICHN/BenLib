@@ -4,7 +4,7 @@ using Clipboard = System.Windows.Forms.Clipboard;
 
 namespace BenLib.WPF
 {
-    public class ApplicationCommands
+    public static class ApplicationCommands
     {
         public static ICommand Copy => new CommandHandler(sender =>
         {

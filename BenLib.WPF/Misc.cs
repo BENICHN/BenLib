@@ -9,7 +9,7 @@ using System.Windows.Shapes;
 
 namespace BenLib.WPF
 {
-    public class Misc
+    public static class Misc
     {
         private static Random Random { get; } = new Random();
 

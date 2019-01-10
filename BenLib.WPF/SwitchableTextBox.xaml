@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:BenLib.WPF"
              mc:Ignorable="d" Height="18" SnapsToDevicePixels="True">
     <Grid Name="grid">
-        <TextBox Name="tb" Visibility="Hidden" VerticalAlignment="Center" Padding="0" PreviewLostKeyboardFocus="tb_PreviewLostKeyboardFocus" PreviewKeyDown="tb_PreviewKeyDown" TextChanged="tb_TextChanged"  FocusVisualStyle="{x:Null}"/>
+        <TextBox Name="tb" Visibility="Hidden" VerticalAlignment="Center" Padding="0" PreviewLostKeyboardFocus="tb_PreviewLostKeyboardFocus" PreviewKeyDown="tb_PreviewKeyDown" TextChanged="tb_TextChanged" FocusVisualStyle="{x:Null}"/>
         <Border Name="bd" BorderThickness="1" Margin="2,0,0,0" CornerRadius="0" VerticalAlignment="Center">
             <TextBlock Name="lb" VerticalAlignment="Center" MouseEnter="lb_MouseEnter" MouseLeave="lb_MouseLeave" MouseDown="lb_MouseDown"/>
         </Border>

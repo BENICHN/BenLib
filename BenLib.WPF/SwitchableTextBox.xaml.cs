@@ -17,15 +17,19 @@ namespace BenLib.WPF
         #region Champs & Propriétés
 
         private string m_tmp;
+        private Brush m_sBackground;
+        private Brush m_sForeground;
 
         /// <summary>
         /// Type de contenu de la <see cref='SwitchableTextBox'/>.
         /// </summary>
         public ContentTypes ContentType { get => TypedTextBox.GetContentType(tb); set => TypedTextBox.SetContentType(tb, value); }
-
         public IEnumerable<string> ForbiddenStrings { get => TypedTextBox.GetForbiddenStrings(tb); set => TypedTextBox.SetForbiddenStrings(tb, value); }
-
         public IEnumerable<string> AllowedStrings { get => TypedTextBox.GetAllowedStrings(tb); set => TypedTextBox.SetAllowedStrings(tb, value); }
+
+        public Brush SBackground { get => m_sBackground; set => m_sBackground = tb.Background = value; }
+        public Brush SForeground { get => m_sForeground; set => m_sForeground = tb.Foreground = lb.Foreground = value; }
+        public Brush SBorderBrush { get; set; }
 
         /// <summary>
         /// Contenu de la <see cref='SwitchableTextBox'/>.
@@ -91,8 +95,8 @@ namespace BenLib.WPF
 
         private void lb_MouseEnter(object sender, MouseEventArgs e)
         {
-            bd.Background = Brushes.White;
-            bd.BorderBrush = SystemColors.ActiveBorderBrush;
+            bd.Background = SBackground ?? Brushes.White;
+            bd.BorderBrush = SBorderBrush ?? SystemColors.ActiveBorderBrush;
         }
 
         private void lb_MouseDown(object sender, MouseButtonEventArgs e)
@@ -108,8 +112,8 @@ namespace BenLib.WPF
 
         private void lb_MouseLeave(object sender, MouseEventArgs e)
         {
-            bd.Background = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
-            bd.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            bd.Background = Brushes.Transparent;
+            bd.BorderBrush = Brushes.Transparent;
         }
 
         private void tb_PreviewKeyDown(object sender, KeyEventArgs e)

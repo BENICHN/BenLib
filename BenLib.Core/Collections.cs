@@ -1,16 +1,16 @@
 ﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.ComponentModel;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace BenLib
 {
-    public class Collections
+    public static class Collections
     {
         public static IEnumerable<T> CreateFilledCollection<T>(int count) where T : new()
         {
@@ -157,6 +157,22 @@ namespace BenLib
 
                     yield return enumerator.Current;
                 }
+            }
+        }
+
+        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, IntInterval interval)
+        {
+            var enumerator = source.GetEnumerator();
+            for (int i = 0; i < interval.Index; i++) { if (!enumerator.MoveNext()) throw new ArgumentOutOfRangeException("source"); }
+            for (int i = interval.Index; interval.ToInfinity ? true : i < interval.LastIndex; i++)
+            {
+                if (!enumerator.MoveNext())
+                {
+                    if (!interval.ToInfinity) throw new ArgumentOutOfRangeException("source");
+                    break;
+                }
+
+                if (interval.Contains(i)) yield return enumerator.Current;
             }
         }
 
@@ -445,7 +461,7 @@ namespace BenLib
             int length = subCollection.Count;
             int i = 0;
 
-            while(i + length <= collection.Count)
+            while (i + length <= collection.Count)
             {
                 if (collection.SubCollection(i, length).SequenceEqual(subCollection))
                 {
@@ -507,7 +523,7 @@ namespace BenLib
         {
             if (source is List<T> list) list.RemoveAll(match);
             if (source is IList<T> ilist) for (int i = ilist.Count - 1; i >= 0; i--) if (match(ilist[i])) ilist.RemoveAt(i);
-            else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
+                    else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
         }
 
         public static void AddRange<T>(this ICollection<T> source, IEnumerable<T> collection)
@@ -679,9 +695,26 @@ namespace BenLib
 
             return new ObservableCollection<T>(li);
         }
+
+        public static IEnumerable<double> Operate(this IEnumerable<double> source, IEnumerable<double> values, Func<double, double, double> operation)
+        {
+            var valuesEnumerator = values.GetEnumerator();
+            foreach (double val in source)
+            {
+                valuesEnumerator.MoveNext();
+                yield return operation(val, valuesEnumerator.Current);
+            }
+        }
+        public static IEnumerable<double> Operate(this IEnumerable<double> source, double value, Func<double, double, double> operation) { foreach (double val in source) yield return operation(val, value); }
+
+        public static void Enumerate<T>(this IEnumerable<T> source)
+        {
+            var enumerator = source.GetEnumerator();
+            while (enumerator.MoveNext()) ;
+        }
     }
 
-    public class MultiEnumerator<T> : IEnumerator<T>
+    public struct MultiEnumerator<T> : IEnumerator<T>
     {
         public MultiEnumerator(params IEnumerator<T>[] enumeratorsArray) : this(enumerators: enumeratorsArray) { }
         public MultiEnumerator(IEnumerable<IEnumerator<T>> enumerators)

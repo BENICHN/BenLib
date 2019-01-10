@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace BenLib.WPF
 {
-    public class GeometryHelper
+    public static class GeometryHelper
     {
         public static PathFigure InterpolatePointWithBeizerCurves(IEnumerable<Point> points, bool closed, double smoothValue = 0.75) => InterpolatePointWithBeizerCurves(points.ToList(), closed, smoothValue);
 
@@ -113,7 +115,7 @@ namespace BenLib.WPF
             return new PathFigure(points[0], segments, closed);
         }
 
-        public static PathGeometry GetCurve(Point[] points, bool closed, bool smooth, double smoothValue = 0.75) => smooth ? new PathGeometry(new[] { InterpolatePointWithBeizerCurves(points, false, smoothValue) }) : new PathGeometry(new[] { new PathFigure(points[0], new[] { new PolyLineSegment(points.Skip(1), true) }, closed) });
+        public static PathGeometry GetCurve(Point[] points, bool closed, bool smooth, double smoothValue = 0.75) => points.Length > 1 ? smooth ? new PathGeometry(new[] { InterpolatePointWithBeizerCurves(points, false, smoothValue) }) : new PathGeometry(new[] { new PathFigure(points[0], new[] { new PolyLineSegment(points.Skip(1), true) }, closed) }) : PathGeometry.CreateFromGeometry(Geometry.Empty);
 
         public static GeometryGroup Group(IEnumerable<Geometry> children) => new GeometryGroup() { Children = new GeometryCollection(children) };
         public static GeometryGroup Group(params Geometry[] children) => new GeometryGroup() { Children = new GeometryCollection(children) };
@@ -135,6 +137,176 @@ namespace BenLib.WPF
                 result[i] = new Point(fig.Left + fig.Width / 2.0, fig.Top + fig.Height / 2.0);
             }
             return result;
+        }
+
+        public static PathGeometry ClipGeometry(PathGeometry geometry, Rect clipRect)
+        {
+            return new PathGeometry(geometry.Figures.SelectMany(figure => GetFigures(figure)));
+
+            (Point A, Point B)? LineRectIntersectionEndpoints(Point lineStart, Point lineEnd)
+            {
+                var endpoints = LineRectIntersection(lineStart, lineEnd, clipRect).GetEnumerator();
+                if (!endpoints.MoveNext()) return null;
+                else
+                {
+                    var a = endpoints.Current;
+                    if (endpoints.MoveNext()) return (a, endpoints.Current);
+                    else return null;
+                }
+            }
+
+            IEnumerable<(Point A, Point B)> GetFigurePoints(PathFigure figure)
+            {
+                var lastPoint = figure.StartPoint;
+                var resSeg = new PolyLineSegment();
+                foreach (var segment in figure.Segments)
+                {
+                    if (segment is LineSegment lineSegment)
+                    {
+                        var endpoints = LineRectIntersectionEndpoints(lastPoint, lineSegment.Point);
+                        if (endpoints.HasValue) yield return endpoints.Value;
+                        lastPoint = lineSegment.Point;
+                    }
+                    else if (segment is PolyLineSegment polyLineSegment)
+                    {
+                        foreach (var point in polyLineSegment.Points)
+                        {
+                            var endpoints = LineRectIntersectionEndpoints(lastPoint, point);
+                            if (endpoints.HasValue) yield return endpoints.Value;
+                            lastPoint = point;
+                        }
+                    }
+                }
+            }
+
+            IEnumerable<PathFigure> GetFigures(PathFigure figure)
+            {
+                var enumerator = GetFigurePoints(figure).GetEnumerator();
+                if (!enumerator.MoveNext()) yield break;
+
+                Point? startPoint = null;
+                var points = new List<Point>();
+                var last = enumerator.Current;
+
+                while (enumerator.MoveNext())
+                {
+                    var (a, b) = enumerator.Current;
+
+                    if (Com(out var d))
+                    {
+                        if (!startPoint.HasValue)
+                        {
+                            if (last.A == d)
+                            {
+                                startPoint = last.A;
+                                points.Add(last.B);
+                            }
+                            else
+                            {
+                                startPoint = last.B;
+                                points.Add(last.A);
+                            }
+                        }
+                        points.Add(d);
+                    }
+                    else
+                    {
+                        if (!startPoint.HasValue) yield return new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
+                        else
+                        {
+                            yield return new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false);
+                            startPoint = null;
+                            points = new List<Point>();
+                        }
+                    }
+
+                    last = (a, b);
+
+                    bool Com(out Point diff)
+                    {
+                        if (a == last.A || a == last.B)
+                        {
+                            diff = b;
+                            return true;
+                        }
+                        if (b == last.A || b == last.B)
+                        {
+                            diff = a;
+                            return true;
+                        }
+                        diff = default;
+                        return false;
+                    }
+                }
+
+                if (startPoint.HasValue) yield return new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false);
+                else yield return new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
+            }
+        }
+
+        public static IEnumerable<Point> LineRectIntersection(Point lineStart, Point lineEnd, Rect rect)
+        {
+            if (rect.Contains(lineStart) && rect.Contains(lineEnd))
+            {
+                yield return lineStart;
+                yield return lineEnd;
+            }
+            else
+            {
+                byte count = 0;
+
+                if (Intersects(lineStart, lineEnd, rect.TopLeft, rect.TopRight, out Point point))
+                {
+                    yield return point;
+                    count++;
+                }
+
+                if (Intersects(lineStart, lineEnd, rect.BottomLeft, rect.BottomRight, out point))
+                {
+                    yield return point;
+                    count++;
+                    if (count == 2) yield break;
+                }
+
+                if (Intersects(lineStart, lineEnd, rect.TopLeft, rect.BottomLeft, out point))
+                {
+                    yield return point;
+                    count++;
+                    if (count == 2) yield break;
+                }
+
+                if (Intersects(lineStart, lineEnd, rect.TopRight, rect.BottomRight, out point))
+                {
+                    yield return point;
+                    count++;
+                    if (count == 2) yield break;
+                }
+
+                if (rect.Contains(lineStart)) yield return lineStart;
+                else yield return lineEnd;
+            }
+        }
+
+        public static bool Intersects(Point a1, Point a2, Point b1, Point b2, out Point intersection)
+        {
+            intersection = new Point(0, 0);
+
+            Vector b = a2 - a1;
+            Vector d = b2 - b1;
+            double bDotDPerp = b.X * d.Y - b.Y * d.X;
+
+            if (bDotDPerp == 0) return false;
+
+            Vector c = b1 - a1;
+            double t = (c.X * d.Y - c.Y * d.X) / bDotDPerp;
+            if (t < 0 || t > 1) return false;
+
+            double u = (c.X * b.Y - c.Y * b.X) / bDotDPerp;
+            if (u < 0 || u > 1) return false;
+
+            intersection = a1 + t * b;
+
+            return true;
         }
     }
 
@@ -202,6 +374,17 @@ namespace BenLib.WPF
             if (geometry.Transform == null) geometry.Transform = transform;
             else if (geometry.Transform is TransformGroup transformGroup) transformGroup.Children.Add(transform);
             else geometry.Transform = new TransformGroup() { Children = new TransformCollection(new[] { geometry.Transform, transform }) };
+        }
+
+        public static Geometry ToGeometry(this Shape shape)
+        {
+            if (shape is Ellipse ellipse) return new EllipseGeometry(new Rect(Canvas.GetLeft(ellipse), Canvas.GetTop(ellipse), ellipse.Width, ellipse.Height));
+            if (shape is Line line) return new LineGeometry(new Point(line.X1, line.Y1), new Point(line.X2, line.Y2));
+            if (shape is Path path) return path.Data;
+            if (shape is Polygon polygon) return GeometryHelper.GetCurve(polygon.Points.ToArray(), true, false);
+            if (shape is Polyline polyline) return GeometryHelper.GetCurve(polyline.Points.ToArray(), false, false);
+            if (shape is Rectangle rectangle) return new RectangleGeometry(new Rect(Canvas.GetLeft(rectangle), Canvas.GetTop(rectangle), rectangle.Width, rectangle.Height), rectangle.RadiusX, rectangle.RadiusY);
+            return shape.RenderedGeometry;
         }
     }
 }

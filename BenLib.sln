@@ -7,7 +7,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib", "BenLib\BenLib.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.WPF", "BenLib.WPF\BenLib.WPF.csproj", "{162852A6-A275-4ACB-916D-0692E53E284F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.Core", "BenLib.Core\BenLib.Core.csproj", "{AB76E990-14B3-4325-B618-F788DCCC837C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenLib.Core", "BenLib.Core\BenLib.Core.csproj", "{AB76E990-14B3-4325-B618-F788DCCC837C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLibTest", "BenLibTest\BenLibTest.csproj", "{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{AB76E990-14B3-4325-B618-F788DCCC837C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AB76E990-14B3-4325-B618-F788DCCC837C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AB76E990-14B3-4325-B618-F788DCCC837C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

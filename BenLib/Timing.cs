@@ -3,10 +3,11 @@ using System.Text;
 using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Threading;
 
 namespace BenLib
 {
-    public class Timing
+    public static class Timing
     {
         public static Task FramesDelay(int framesCount)
         {
@@ -28,6 +29,8 @@ namespace BenLib
 
             return tcs.Task;
         }
+
+        public static Task Wait(CancellationToken cancellationToken = default) => Task.Run(() => { while (true) { } }, cancellationToken);
     }
 
     public static partial class Extensions

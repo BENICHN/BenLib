@@ -10,7 +10,7 @@ using System.Drawing.Imaging;
 
 namespace BenLib
 {
-    public class Imaging
+    public static class Imaging
     {
         /*/// <summary>
         /// Class containg code for manipulating SVG graphics.
@@ -603,7 +603,7 @@ namespace BenLib
         /// <returns>Objet de type BitmapSource correspondant au paramètre entrant</returns>
         public static BitmapSource ToSource(this Bitmap bitmap)
         {
-            return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
         }
 
         public static Bitmap ToBitmap(this BitmapSource source)

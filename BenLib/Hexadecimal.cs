@@ -177,33 +177,129 @@ namespace BenLib
 
         public static byte[] ToHexByteArray(this string hex) => Enumerable.Range(0, hex.Length).Where(x => x % 2 == 0).Select(x => Convert.ToByte(hex.Substring(x, 2), 16)).ToArray();
 
-        public static long Peek64Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(stream.PeekEndian(offset, 8, littleEndian), 0);
-        public static async Task<long> Peek64BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(await stream.PeekEndianAsync(offset, 8, littleEndian), 0);
+        public static long Peek64BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.PeekEndian(offset, 8, true, positionZero), 0);
+        public static async Task<long> Peek64BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.PeekEndianAsync(offset, 8, true, positionZero), 0);
 
-        public static int Peek32Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(stream.PeekEndian(offset, 4, littleEndian), 0);
-        public static async Task<int> Peek32BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(await stream.PeekEndianAsync(offset, 4, littleEndian), 0);
+        public static int Peek32BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.PeekEndian(offset, 4, true, positionZero), 0);
+        public static async Task<int> Peek32BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.PeekEndianAsync(offset, 4, true, positionZero), 0);
 
-        public static short Peek16Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(stream.PeekEndian(offset, 2, littleEndian), 0);
-        public static async Task<short> Peek16BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(await stream.PeekEndianAsync(offset, 2, littleEndian), 0);
+        public static short Peek16BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.PeekEndian(offset, 2, true, positionZero), 0);
+        public static async Task<short> Peek16BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.PeekEndianAsync(offset, 2, true, positionZero), 0);
 
-        public static byte Peek8Bit(this Stream stream, long offset) => stream.PeekByte(offset);
+        public static long Peek64BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.PeekEndian(offset, 8, false, positionZero), 0);
+        public static async Task<long> Peek64BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.PeekEndianAsync(offset, 8, false, positionZero), 0);
 
-        public static long Read64Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(stream.ReadEndian(offset, 8, littleEndian), 0);
-        public static async Task<long> Read64BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt64(await stream.ReadEndianAsync(offset, 8, littleEndian), 0);
+        public static int Peek32BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.PeekEndian(offset, 4, false, positionZero), 0);
+        public static async Task<int> Peek32BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.PeekEndianAsync(offset, 4, false, positionZero), 0);
 
-        public static int Read32Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(stream.ReadEndian(offset, 4, littleEndian), 0);
-        public static async Task<int> Read32BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt32(await stream.ReadEndianAsync(offset, 4, littleEndian), 0);
+        public static short Peek16BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.PeekEndian(offset, 2, false, positionZero), 0);
+        public static async Task<short> Peek16BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.PeekEndianAsync(offset, 2, false, positionZero), 0);
 
-        public static short Read16Bit(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(stream.ReadEndian(offset, 2, littleEndian), 0);
-        public static async Task<short> Read16BitAsync(this Stream stream, long offset, bool littleEndian) => BitConverter.ToInt16(await stream.ReadEndianAsync(offset, 2, littleEndian), 0);
+        public static long Peek64Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.PeekEndian(offset, 8, littleEndian, positionZero), 0);
+        public static async Task<long> Peek64BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.PeekEndianAsync(offset, 8, littleEndian, positionZero), 0);
 
-        public static byte Read8Bit(this Stream stream, long offset) => stream.ReadByte(offset);
+        public static int Peek32Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.PeekEndian(offset, 4, littleEndian, positionZero), 0);
+        public static async Task<int> Peek32BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.PeekEndianAsync(offset, 4, littleEndian, positionZero), 0);
+
+        public static short Peek16Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.PeekEndian(offset, 2, littleEndian, positionZero), 0);
+        public static async Task<short> Peek16BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.PeekEndianAsync(offset, 2, littleEndian, positionZero), 0);
+
+        public static byte Peek8Bit(this Stream stream, long offset = 0) => stream.PeekByte(offset);
+
+        public static long Read64BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.ReadEndian(offset, 8, true, positionZero), 0);
+        public static async Task<long> Read64BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.ReadEndianAsync(offset, 8, true, positionZero), 0);
+
+        public static int Read32BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.ReadEndian(offset, 4, true, positionZero), 0);
+        public static async Task<int> Read32BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.ReadEndianAsync(offset, 4, true, positionZero), 0);
+
+        public static short Read16BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.ReadEndian(offset, 2, true, positionZero), 0);
+        public static async Task<short> Read16BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.ReadEndianAsync(offset, 2, true, positionZero), 0);
+
+        public static long Read64BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.ReadEndian(offset, 8, false, positionZero), 0);
+        public static async Task<long> Read64BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.ReadEndianAsync(offset, 8, false, positionZero), 0);
+
+        public static int Read32BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.ReadEndian(offset, 4, false, positionZero), 0);
+        public static async Task<int> Read32BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.ReadEndianAsync(offset, 4, false, positionZero), 0);
+
+        public static short Read16BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.ReadEndian(offset, 2, false, positionZero), 0);
+        public static async Task<short> Read16BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.ReadEndianAsync(offset, 2, false, positionZero), 0);
+
+        public static long Read64Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(stream.ReadEndian(offset, 8, littleEndian, positionZero), 0);
+        public static async Task<long> Read64BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt64(await stream.ReadEndianAsync(offset, 8, littleEndian, positionZero), 0);
+
+        public static int Read32Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(stream.ReadEndian(offset, 4, littleEndian, positionZero), 0);
+        public static async Task<int> Read32BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt32(await stream.ReadEndianAsync(offset, 4, littleEndian, positionZero), 0);
+
+        public static short Read16Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(stream.ReadEndian(offset, 2, littleEndian, positionZero), 0);
+        public static async Task<short> Read16BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToInt16(await stream.ReadEndianAsync(offset, 2, littleEndian, positionZero), 0);
+
+        public static byte Read8Bit(this Stream stream, long offset = 0, bool positionZero = false) => stream.ReadByte(offset, positionZero);
+
+        public static ulong PeekU64BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.PeekEndian(offset, 8, true, positionZero), 0);
+        public static async Task<ulong> PeekU64BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.PeekEndianAsync(offset, 8, true, positionZero), 0);
+
+        public static uint PeekU32BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.PeekEndian(offset, 4, true, positionZero), 0);
+        public static async Task<uint> PeekU32BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.PeekEndianAsync(offset, 4, true, positionZero), 0);
+
+        public static ushort PeekU16BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.PeekEndian(offset, 2, true, positionZero), 0);
+        public static async Task<ushort> PeekU16BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.PeekEndianAsync(offset, 2, true, positionZero), 0);
+
+        public static ulong PeekU64BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.PeekEndian(offset, 8, false, positionZero), 0);
+        public static async Task<ulong> PeekU64BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.PeekEndianAsync(offset, 8, false, positionZero), 0);
+
+        public static uint PeekU32BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.PeekEndian(offset, 4, false, positionZero), 0);
+        public static async Task<uint> PeekU32BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.PeekEndianAsync(offset, 4, false, positionZero), 0);
+
+        public static ushort PeekU16BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.PeekEndian(offset, 2, false, positionZero), 0);
+        public static async Task<ushort> PeekU16BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.PeekEndianAsync(offset, 2, false, positionZero), 0);
+
+        public static ulong PeekU64Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.PeekEndian(offset, 8, littleEndian, positionZero), 0);
+        public static async Task<ulong> PeekU64BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.PeekEndianAsync(offset, 8, littleEndian, positionZero), 0);
+
+        public static uint PeekU32Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.PeekEndian(offset, 4, littleEndian, positionZero), 0);
+        public static async Task<uint> PeekU32BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.PeekEndianAsync(offset, 4, littleEndian, positionZero), 0);
+
+        public static ushort PeekU16Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.PeekEndian(offset, 2, littleEndian, positionZero), 0);
+        public static async Task<ushort> PeekU16BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.PeekEndianAsync(offset, 2, littleEndian, positionZero), 0);
+
+        public static ulong ReadU64BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.ReadEndian(offset, 8, true, positionZero), 0);
+        public static async Task<ulong> ReadU64BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.ReadEndianAsync(offset, 8, true, positionZero), 0);
+
+        public static uint ReadU32BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.ReadEndian(offset, 4, true, positionZero), 0);
+        public static async Task<uint> ReadU32BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.ReadEndianAsync(offset, 4, true, positionZero), 0);
+
+        public static ushort ReadU16BitLE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.ReadEndian(offset, 2, true, positionZero), 0);
+        public static async Task<ushort> ReadU16BitLEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.ReadEndianAsync(offset, 2, true, positionZero), 0);
+
+        public static ulong ReadU64BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.ReadEndian(offset, 8, false, positionZero), 0);
+        public static async Task<ulong> ReadU64BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.ReadEndianAsync(offset, 8, false, positionZero), 0);
+
+        public static uint ReadU32BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.ReadEndian(offset, 4, false, positionZero), 0);
+        public static async Task<uint> ReadU32BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.ReadEndianAsync(offset, 4, false, positionZero), 0);
+
+        public static ushort ReadU16BitBE(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.ReadEndian(offset, 2, false, positionZero), 0);
+        public static async Task<ushort> ReadU16BitBEAsync(this Stream stream, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.ReadEndianAsync(offset, 2, false, positionZero), 0);
+
+        public static ulong ReadU64Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(stream.ReadEndian(offset, 8, littleEndian, positionZero), 0);
+        public static async Task<ulong> ReadU64BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt64(await stream.ReadEndianAsync(offset, 8, littleEndian, positionZero), 0);
+
+        public static uint ReadU32Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(stream.ReadEndian(offset, 4, littleEndian, positionZero), 0);
+        public static async Task<uint> ReadU32BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt32(await stream.ReadEndianAsync(offset, 4, littleEndian, positionZero), 0);
+
+        public static ushort ReadU16Bit(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(stream.ReadEndian(offset, 2, littleEndian, positionZero), 0);
+        public static async Task<ushort> ReadU16BitAsync(this Stream stream, bool littleEndian, long offset = 0, bool positionZero = false) => BitConverter.ToUInt16(await stream.ReadEndianAsync(offset, 2, littleEndian, positionZero), 0);
+
+        public static string ReadUTF8(this Stream stream, long offset, int count, bool positionZero = false) => Encoding.UTF8.GetString(stream.ReadBytes(offset, count, positionZero));
+        public static string ReadUTF8(this Stream stream, int count, bool positionZero = false) => Encoding.UTF8.GetString(stream.ReadBytes(0, count, positionZero));
+
+        public static string ReadASCII(this Stream stream, long offset, int count, bool positionZero = false) => Encoding.ASCII.GetString(stream.ReadBytes(offset, count, positionZero));
+        public static string ReadASCII(this Stream stream, int count, bool positionZero = false) => Encoding.ASCII.GetString(stream.ReadBytes(0, count, positionZero));
     }
 
     /// <summary>
     /// Contient des outils pour manipuler du code hexadécimal.
     /// </summary>
-    public class Hexadecimal
+    public static class Hexadecimal
     {
         #region Endiannes
 

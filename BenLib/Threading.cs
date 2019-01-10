@@ -8,7 +8,7 @@ using System.Windows.Threading;
 
 namespace BenLib
 {
-    public class Threading
+    public static class Threading
     {
         public static async Task MultipleAttempts(Task task, int times = 10, int delay = 50, bool throwEx = true, Action middleAction = null, Task middleTask = null)
         {

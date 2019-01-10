@@ -6,7 +6,7 @@ using System.IO;
 
 namespace BenLib
 {
-    public class Misc
+    public static class Misc
     {
 
     }

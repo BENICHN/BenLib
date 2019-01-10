@@ -10,7 +10,7 @@ using System.Collections;
 
 namespace BenLib
 {
-    public class Animating
+    public static class Animating
     {
         public static Dictionary<string, StaticAnimation> Animations { get; } = new Dictionary<string, StaticAnimation>();
 

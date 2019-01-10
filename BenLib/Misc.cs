@@ -10,7 +10,7 @@ using System.Text;
 
 namespace BenLib
 {
-    public class Misc
+    public static class Misc
     {
         public static bool IsAdministrator()
         {

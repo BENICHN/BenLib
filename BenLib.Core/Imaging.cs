@@ -2,7 +2,7 @@
 
 namespace BenLib
 {
-    public class Imaging
+    public static class Imaging
     {
         public static Color FromScARGB(double scA, double scR, double scG, double scB) => Color.FromArgb((int)(scA * 255), (int)(scR * 255), (int)(scG * 255), (int)(scB * 255));
     }

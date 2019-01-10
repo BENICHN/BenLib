@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace BenLib
 {
-    public class Literal
+    public static class Literal
     {
         public static Regex Integer = new Regex(@"^(\-)?\d+$");
         public static Regex PreviewInteger = new Regex(@"^(\-)?(\d+)?$");
@@ -24,17 +24,19 @@ namespace BenLib
         public static NumberFormatInfo DecimalSeparatorPoint = new NumberFormatInfo() { NumberDecimalSeparator = ".", PercentDecimalSeparator = ".", CurrencyDecimalSeparator = "." };
         public static NumberFormatInfo DecimalSeparatorComma = new NumberFormatInfo() { NumberDecimalSeparator = ",", PercentDecimalSeparator = ",", CurrencyDecimalSeparator = "," };
 
-        public static string CoefsToString(params (double Coef, string Letter)[] expression)
+        public static string CoefsToString(bool sort, params (double Coef, string Letter)[] expression)
         {
             var resultBuilder = new StringBuilder();
-            foreach (var group in expression.Where(cl => cl.Coef != 0).GroupBy(cl => cl.Coef > 0))
-            {
-                if (group.Key) foreach (var (coef, letter) in group) resultBuilder.Append($"+ {(coef == 1 ? string.Empty : coef.ToString())}{letter} ");
-                else foreach (var (coef, letter) in group) resultBuilder.Append($"- {(coef == -1 ? string.Empty : (-coef).ToString())}{letter} ");
-            }
+            foreach (var (coef, letter) in sort ? expression.Where(cl => cl.Coef != 0).GroupBy(cl => cl.Coef > 0).OrderByDescending(group => group.Key).SelectMany(group => group) : expression) AppendCoef(coef, letter);
             string result = resultBuilder.ToString().Trim('+', ' ');
             if (result.StartsWith("- ")) result = result.Remove(1, 1);
             return result;
+
+            void AppendCoef(double coef, string letter)
+            {
+                if (coef > 0) resultBuilder.Append($"+ {(coef == 1 && !letter.IsNullOrWhiteSpace() ? string.Empty : coef.ToString())}{letter} ");
+                else if (coef < 0) resultBuilder.Append($"- {(coef == -1 && !letter.IsNullOrWhiteSpace() ? string.Empty : (-coef).ToString())}{letter} ");
+            }
         }
     }
 

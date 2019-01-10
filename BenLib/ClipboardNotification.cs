@@ -10,14 +10,14 @@ namespace BenLib
     /// <para>Provides notifications when the contents of the clipboard is updated.</para>
     /// <para>Author : glombard (https://gist.github.com/glombard/7986317#file-clipboardnotification-cs)</para>
     /// </summary>
-    public sealed class ClipboardNotification
+    public static class ClipboardNotification
     {
         /// <summary>
         /// Occurs when the contents of the clipboard is updated.
         /// </summary>
         public static event EventHandler ClipboardUpdate;
 
-        private static NotificationForm _form = new NotificationForm();
+        private static readonly NotificationForm m_form = new NotificationForm();
 
         /// <summary>
         /// Raises the <see cref="ClipboardUpdate"/> event.

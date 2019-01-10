@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BenLib
 {
-    public class Network
+    public static class Network
     {
     }
 
