@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Text;
 using System.Globalization;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using System.Threading;
 
 namespace BenLib
 {
@@ -11,7 +11,7 @@ namespace BenLib
     {
         public static Task FramesDelay(int framesCount)
         {
-            var ellapsedFrames = 0;
+            int ellapsedFrames = 0;
             var tcs = new TaskCompletionSource<object>();
 
             void SpendEvent(object sender, EventArgs e)
@@ -61,7 +61,7 @@ namespace BenLib
 
         public void Reset() => ElapsedFrames = 0;
 
-        void SpendEvent(object sender, EventArgs e) => Spend();
+        private void SpendEvent(object sender, EventArgs e) => Spend();
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ namespace BenLib
             set => Seconds = value / 1000;
         } //return 10 * 1000 → 10000
 
-        public int TotalMinutes { get => hrs * 60 + min + (int)sec / 60; } //return 1 * 60 + 60 + 70 / 60 → 121
+        public int TotalMinutes => hrs * 60 + min + (int)sec / 60;  //return 1 * 60 + 60 + 70 / 60 → 121
 
         public double TotalSeconds
         {
@@ -263,7 +263,7 @@ namespace BenLib
         public string ToString(int maxDecimalPlaces, bool unlimitedAtZero = false)
         {
             if (unlimitedAtZero && maxDecimalPlaces == 0) return ToString();
-            StringBuilder sb = new StringBuilder("hh:mm:ss");
+            var sb = new StringBuilder("hh:mm:ss");
             if (maxDecimalPlaces > 0) sb.Append('.');
             maxDecimalPlaces.Times(i => sb.Append('s'));
             return ToString(sb.ToString());

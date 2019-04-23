@@ -51,7 +51,7 @@ namespace BenLib
         private const uint SEE_MASK_INVOKEIDLIST = 12;
         public static bool ShowFileProperties(string Filename)
         {
-            SHELLEXECUTEINFO info = new SHELLEXECUTEINFO();
+            var info = new SHELLEXECUTEINFO();
             info.cbSize = Marshal.SizeOf(info);
             info.lpVerb = "properties";
             info.lpFile = Filename;
@@ -78,8 +78,8 @@ namespace BenLib
 
         public static void CreateShortcut(string shortcutName, string shortcutPath, string targetFileLocation, string description = "", string iconLocation = "")
         {
-            WshShell shell = new WshShell();
-            IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(Path.Combine(shortcutPath, shortcutName + ".lnk"));
+            var shell = new WshShell();
+            var shortcut = (IWshShortcut)shell.CreateShortcut(Path.Combine(shortcutPath, shortcutName + ".lnk"));
 
             shortcut.Description = description;
             shortcut.IconLocation = iconLocation;
@@ -89,8 +89,8 @@ namespace BenLib
 
         public static bool CanRead(string path)
         {
-            var readAllow = false;
-            var readDeny = false;
+            bool readAllow = false;
+            bool readDeny = false;
             var accessControlList = Directory.GetAccessControl(path);
             if (accessControlList == null)
                 return false;
@@ -173,7 +173,7 @@ namespace BenLib
 
         public static byte[] ReadBytes(string fileName, long offset, int count)
         {
-            using (BinaryReader reader = new BinaryReader(System.IO.File.OpenRead(fileName)))
+            using (var reader = new BinaryReader(System.IO.File.OpenRead(fileName)))
             {
                 reader.BaseStream.Seek(offset, SeekOrigin.Begin);
                 return reader.ReadBytes(count);
@@ -207,7 +207,7 @@ namespace BenLib
 
         public static string GetTempFilePath()
         {
-            var result = Path.GetTempFileName();
+            string result = Path.GetTempFileName();
             System.IO.File.Delete(result);
             return result;
         }
@@ -227,7 +227,7 @@ namespace BenLib
     {
         public static void ExtractToDirectory(this ZipArchive archive, string destinationDirectoryName, bool overwrite)
         {
-            foreach (ZipArchiveEntry file in archive.Entries)
+            foreach (var file in archive.Entries)
             {
                 string completeFileName = Path.Combine(destinationDirectoryName, file.FullName);
                 string directory = Path.GetDirectoryName(completeFileName);
@@ -241,7 +241,7 @@ namespace BenLib
         {
             try
             {
-                foreach (ZipArchiveEntry file in archive.Entries)
+                foreach (var file in archive.Entries)
                 {
                     string completeFileName = Path.Combine(destinationDirectoryName, file.FullName);
                     string directory = Path.GetDirectoryName(completeFileName);
@@ -253,21 +253,15 @@ namespace BenLib
             catch (OperationCanceledException) { if (deleteAtCancellation) await DirectoryAsync.TryAndRetryDeleteAsync(destinationDirectoryName); }
         }
 
-        public static string[] ReadAllLines(this StreamReader sr)
+        public static IEnumerable<string> ReadAllLines(this StreamReader streamReader)
         {
-            List<string> s = new List<string>();
             string line;
-            while ((line = sr.ReadLine()) != null)
-            {
-                s.Add(line);
-            }
-
-            return s.ToArray();
+            while ((line = streamReader.ReadLine()) != null) yield return line;
         }
 
         public static async Task<string[]> ReadAllLinesAsync(this StreamReader sr)
         {
-            List<string> s = new List<string>();
+            var s = new List<string>();
             string line;
             while ((line = await sr.ReadLineAsync()) != null)
             {
@@ -294,25 +288,25 @@ namespace BenLib
 
         public static byte[] PeekBytes(this BinaryReader reader, int count)
         {
-            var position = reader.BaseStream.Position;
-            var result = reader.ReadBytes(count);
+            long position = reader.BaseStream.Position;
+            byte[] result = reader.ReadBytes(count);
             reader.BaseStream.Seek(position, SeekOrigin.Begin);
             return result;
         }
 
         public static byte[] PeekBytes(this BinaryReader reader, long offset, int count)
         {
-            var position = reader.BaseStream.Position;
+            long position = reader.BaseStream.Position;
             reader.BaseStream.Seek(offset, SeekOrigin.Begin);
-            var result = reader.ReadBytes(count);
+            byte[] result = reader.ReadBytes(count);
             reader.BaseStream.Seek(position, SeekOrigin.Begin);
             return result;
         }
 
         public static byte[] PeekAllBytes(this BinaryReader reader)
         {
-            var position = reader.BaseStream.Position;
-            var result = reader.ReadAllBytes();
+            long position = reader.BaseStream.Position;
+            byte[] result = reader.ReadAllBytes();
             reader.BaseStream.Seek(position, SeekOrigin.Begin);
             return result;
         }
@@ -321,23 +315,14 @@ namespace BenLib
 
         #region Stream
 
-        private static async Task<byte> ReadByteAsync(this Stream s)
-        {
-            byte[] buffer = new byte[1];
-
-            await s.ReadAsync(buffer, 0, 1);
-
-            return buffer[0];
-        }
-
         public static byte PeekByte(this Stream stream, long offset, bool postitonZero = true)
         {
-            var position = stream.Position;
+            long position = stream.Position;
 
             if (postitonZero) stream.Seek(0, SeekOrigin.Begin);
 
             stream.Position += offset;
-            var result = stream.ReadByte();
+            int result = stream.ReadByte();
 
             stream.Seek(position, SeekOrigin.Begin);
 
@@ -346,11 +331,11 @@ namespace BenLib
 
         public static byte[] PeekBytes(this Stream stream, long offset, int count, bool postitonZero = true)
         {
-            var position = stream.Position;
+            long position = stream.Position;
             if (postitonZero) stream.Seek(0, SeekOrigin.Begin);
 
-            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
-            var result = new byte[maxCount];
+            int maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            byte[] result = new byte[maxCount];
 
             stream.Position += offset;
             stream.Read(result, 0, maxCount);
@@ -360,13 +345,13 @@ namespace BenLib
             return result;
         }
 
-        public static async Task<byte[]> PeekBytesAsync(this Stream stream, long offset, int count, CancellationToken cancellationToken = default, bool postitonZero = true)
+        public static async Task<byte[]> PeekBytesAsync(this Stream stream, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
-            var position = stream.Position;
+            long position = stream.Position;
             if (postitonZero) stream.Seek(0, SeekOrigin.Begin);
 
-            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
-            var result = new byte[maxCount];
+            int maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            byte[] result = new byte[maxCount];
 
             stream.Position += offset;
             await stream.ReadAsync(result, 0, maxCount, cancellationToken);
@@ -381,7 +366,7 @@ namespace BenLib
             if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
             else stream.Position += offset;
 
-            var result = new byte[1];
+            byte[] result = new byte[1];
 
             stream.Read(result, 0, 1);
 
@@ -393,8 +378,8 @@ namespace BenLib
             if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
             else stream.Position += offset;
 
-            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
-            var result = new byte[maxCount];
+            int maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            byte[] result = new byte[maxCount];
 
             stream.Read(result, 0, maxCount);
 
@@ -403,8 +388,8 @@ namespace BenLib
 
         public static async Task<byte[]> ReadBytesAsync(this Stream stream, long offset, int count, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
-            var maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
-            var result = new byte[maxCount];
+            int maxCount = (int)Math.Min(count, stream.Length - stream.Position - offset);
+            byte[] result = new byte[maxCount];
 
             if (postitonZero) stream.Seek(offset, SeekOrigin.Begin);
             else stream.Position += offset;
@@ -416,42 +401,46 @@ namespace BenLib
 
         public static byte[] ReadEndian(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true)
         {
-            var bytes = stream.ReadBytes(offset, count, postitonZero);
-            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
-            else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+            byte[] bytes = stream.ReadBytes(offset, count, postitonZero);
+            return littleEndian
+                ? BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray()
+                : !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
         }
 
         public static async Task<byte[]> ReadEndianAsync(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
-            var bytes = await stream.ReadBytesAsync(offset, count, postitonZero);
-            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
-            else return !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+            byte[] bytes = await stream.ReadBytesAsync(offset, count, postitonZero, cancellationToken);
+            return littleEndian
+                ? BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync()
+                : !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
         }
 
         public static byte[] PeekEndian(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true)
         {
-            var bytes = stream.PeekBytes(offset, count, postitonZero);
-            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
-            else return !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
+            byte[] bytes = stream.PeekBytes(offset, count, postitonZero);
+            return littleEndian
+                ? BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray()
+                : !BitConverter.IsLittleEndian ? bytes : bytes.Reverse().ToArray();
         }
 
         public static async Task<byte[]> PeekEndianAsync(this Stream stream, long offset, int count, bool littleEndian, bool postitonZero = true, CancellationToken cancellationToken = default)
         {
-            var bytes = await stream.PeekBytesAsync(offset, count, default, postitonZero);
-            if (littleEndian) return BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
-            else return !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
+            byte[] bytes = await stream.PeekBytesAsync(offset, count, postitonZero, cancellationToken);
+            return littleEndian
+                ? BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync()
+                : !BitConverter.IsLittleEndian ? bytes : await bytes.Reverse().ToArrayAsync();
         }
-        
+
         public static byte[] ReadBytes(this Stream stream, int count)
         {
-            var buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
+            byte[] buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
             stream.Read(buffer, 0, count);
             return buffer;
         }
 
         public static async Task<byte[]> ReadBytesAsync(this Stream stream, int count, CancellationToken cancellationToken = default)
         {
-            var buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
+            byte[] buffer = new byte[Math.Min(stream.Length - stream.Position, count)];
             await stream.ReadAsync(buffer, 0, count, cancellationToken);
             return buffer;
         }
@@ -504,10 +493,10 @@ namespace BenLib
             for (long i = 0; i < needle.Length; i++) lookup[needle[i]] = needle.Length - i - 1;
 
             long index = needle.Length + offset - 1;
-            var lastByte = needle.Last();
+            byte lastByte = needle.Last();
             while (index < haystack.Length)
             {
-                var checkByte = haystack.PeekByte(index);
+                byte checkByte = haystack.PeekByte(index);
                 if (checkByte == lastByte)
                 {
                     bool found = true;
@@ -536,11 +525,11 @@ namespace BenLib
             for (long i = 0; i < needle.Length; i++) lookup[needle[i]] = needle.Length - i - 1;
 
             long index = needle.Length + offset - 1;
-            var lastByte = needle.Last();
+            byte lastByte = needle.Last();
 
             while (index < haystack.Length)
             {
-                var checkByte = haystack.PeekByte(index);
+                byte checkByte = haystack.PeekByte(index);
                 if (checkByte == lastByte)
                 {
                     bool found = true;
@@ -563,7 +552,7 @@ namespace BenLib
 
         public static IEnumerable<long> AllPositionsOf(this Stream haystack, byte[] needle, long offset = -1, bool keepPosition = true)
         {
-            var pos = haystack.Position;
+            long pos = haystack.Position;
 
             try
             {
@@ -582,7 +571,7 @@ namespace BenLib
 
         public static async Task<List<long>> AllPositionsOfAsync(this Stream haystack, byte[] needle, long offset = 0, bool keepPosition = true, CancellationToken cancellationToken = default)
         {
-            var pos = haystack.Position;
+            long pos = haystack.Position;
             var indexes = new List<long>();
 
             try
@@ -607,9 +596,9 @@ namespace BenLib
         {
             if (entry.FullName.IsNullOrEmpty() || destinationDirectoryName.IsNullOrEmpty()) return;
             var entries = entry.Archive.Entries.Where(e => e.FullName.StartsWith(entry.FullName) && !e.FullName.EndsWith("/"));
-            foreach (ZipArchiveEntry e in entries)
+            foreach (var e in entries)
             {
-                var path = Path.Combine(destinationDirectoryName, e.FullName.Substring(entry.FullName.Length));
+                string path = Path.Combine(destinationDirectoryName, e.FullName.Substring(entry.FullName.Length));
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 e.ExtractToFile(path, overwrite);
             }
@@ -621,9 +610,9 @@ namespace BenLib
             {
                 if (entry.FullName.IsNullOrEmpty() || destinationDirectoryName.IsNullOrEmpty()) return;
                 var entries = await entry.Archive.Entries.WhereAsync(e => e.FullName.StartsWith(entry.FullName) && !e.FullName.EndsWith("/"), cancellationToken);
-                foreach (ZipArchiveEntry e in entries)
+                foreach (var e in entries)
                 {
-                    var path = Path.Combine(destinationDirectoryName, e.FullName.Substring(entry.FullName.Length));
+                    string path = Path.Combine(destinationDirectoryName, e.FullName.Substring(entry.FullName.Length));
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
                     await e.ExtractToFileAsync(path, overwrite, cancellationToken, deleteAtCancellation);
                 }
@@ -653,7 +642,7 @@ namespace BenLib
         {
             foreach (string dir in Directory.EnumerateDirectories(sourceDirectoryName))
             {
-                var postDir = Path.Combine(destDirectoryName, dir.Substring(sourceDirectoryName.Length + 1));
+                string postDir = Path.Combine(destDirectoryName, dir.Substring(sourceDirectoryName.Length + 1));
                 if (!Directory.Exists(postDir)) Directory.CreateDirectory(postDir);
                 await CopyAsync(dir, postDir, overwrite, cancellationToken);
             }
@@ -665,7 +654,7 @@ namespace BenLib
         {
             foreach (string dir in Directory.EnumerateDirectories(sourceDirectoryName))
             {
-                var postDir = Path.Combine(destDirectoryName, dir.Substring(sourceDirectoryName.Length + 1));
+                string postDir = Path.Combine(destDirectoryName, dir.Substring(sourceDirectoryName.Length + 1));
                 if (!Directory.Exists(postDir)) Directory.CreateDirectory(postDir);
                 await MoveAsync(dir, postDir, cancellationToken);
             }
@@ -686,28 +675,28 @@ namespace BenLib
     {
         public static async Task CopyAsync(string sourceFileName, string destFileName)
         {
-            var dir = Path.GetDirectoryName(destFileName);
+            string dir = Path.GetDirectoryName(destFileName);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             await AsyncFile.CopyAsync(sourceFileName, destFileName);
         }
 
         public static async Task CopyAsync(string sourceFileName, string destFileName, bool overwrite)
         {
-            var dir = Path.GetDirectoryName(destFileName);
+            string dir = Path.GetDirectoryName(destFileName);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             await AsyncFile.CopyAsync(sourceFileName, destFileName, overwrite);
         }
 
         public static async Task CopyAsync(string sourceFileName, string destFileName, CancellationToken cancellationToken)
         {
-            var dir = Path.GetDirectoryName(destFileName);
+            string dir = Path.GetDirectoryName(destFileName);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             await AsyncFile.CopyAsync(sourceFileName, destFileName, cancellationToken);
         }
 
         public static async Task CopyAsync(string sourceFileName, string destFileName, bool overwrite, CancellationToken cancellationToken)
         {
-            var dir = Path.GetDirectoryName(destFileName);
+            string dir = Path.GetDirectoryName(destFileName);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             await AsyncFile.CopyAsync(sourceFileName, destFileName, overwrite, cancellationToken);
         }

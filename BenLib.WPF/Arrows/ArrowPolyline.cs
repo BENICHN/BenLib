@@ -1,7 +1,6 @@
 //----------------------------------------------
 // ArrowPolyline.cs (c) 2007 by Charles Petzold
 //----------------------------------------------
-using System;
 using System.Windows;
 using System.Windows.Media;
 
@@ -28,24 +27,21 @@ namespace BenLib.WPF
         /// </summary>
         public PointCollection Points
         {
-            set { SetValue(PointsProperty, value); }
-            get { return (PointCollection)GetValue(PointsProperty); }
+            set => SetValue(PointsProperty, value);
+            get => (PointCollection)GetValue(PointsProperty);
         }
 
         /// <summary>
         ///     Initializes a new instance of the ArrowPolyline class. 
         /// </summary>
-        public ArrowPolyline()
-        {
-            Points = new PointCollection();
-        }
+        public ArrowPolyline() => Points = new PointCollection();
 
         /// <summary>
         ///     Gets a value that represents the Geometry of the ArrowPolyline.
         /// </summary>
         protected override Geometry DefiningGeometry
         {
-            get 
+            get
             {
                 // Clear out the PathGeometry.
                 pathgeo.Figures.Clear();

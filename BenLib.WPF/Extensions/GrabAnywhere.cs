@@ -1,8 +1,8 @@
-﻿using System.Windows;
+﻿using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
-using System.Collections.Generic;
-using System.Windows.Input;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 
 namespace BenLib.WPF
 {
@@ -13,7 +13,7 @@ namespace BenLib.WPF
 
         public static readonly DependencyProperty EnabledProperty = DependencyProperty.RegisterAttached("Enabled", typeof(bool), typeof(GrabAnywhere), new UIPropertyMetadata(EnabledChanged));
 
-        private bool Enabled { get => (bool)m_slider.GetValue(EnabledProperty); set => m_slider.SetValue(EnabledProperty, value); }
+        public bool Enabled { get => (bool)m_slider.GetValue(EnabledProperty); set => m_slider.SetValue(EnabledProperty, value); }
 
         private static readonly Dictionary<Slider, GrabAnywhere> m_attachedControls = new Dictionary<Slider, GrabAnywhere>();
 
@@ -47,10 +47,7 @@ namespace BenLib.WPF
             else return false;
         }
 
-        private void UnRegister()
-        {
-            (m_slider.Template.FindName("PART_Track", m_slider) as Track).Thumb.MouseEnter += Thumb_MouseEnter;
-        }
+        private void UnRegister() => (m_slider.Template.FindName("PART_Track", m_slider) as Track).Thumb.MouseEnter += Thumb_MouseEnter;
 
         private static void EnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -62,7 +59,7 @@ namespace BenLib.WPF
                 }
                 else //Unregister
                 {
-                    if (m_attachedControls.TryGetValue(slider, out GrabAnywhere extensions))
+                    if (m_attachedControls.TryGetValue(slider, out var extensions))
                     {
                         m_attachedControls.Remove(slider);
                         extensions.UnRegister();
@@ -75,7 +72,7 @@ namespace BenLib.WPF
         {
             if (sender is Thumb thumb && e.LeftButton == MouseButtonState.Pressed && e.MouseDevice.Captured == null)
             {
-                MouseButtonEventArgs args = new MouseButtonEventArgs(e.MouseDevice, e.Timestamp, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
+                var args = new MouseButtonEventArgs(e.MouseDevice, e.Timestamp, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
                 thumb.RaiseEvent(args);
             }
         }

@@ -4,20 +4,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
 
 namespace BenLib
 {
@@ -46,6 +37,26 @@ namespace BenLib
         public static IEnumerable<ushort> Range(ushort start, ushort count) { for (ushort i = start; i < start + count; i++) yield return i; }
         public static IEnumerable<long> Range(long start, long count) { for (long i = start; i < start + count; i++) yield return i; }
         public static IEnumerable<ulong> Range(ulong start, ulong count) { for (ulong i = start; i < start + count; i++) yield return i; }
+
+        public static NotifyCollectionChangedEventArgs CollectionAdd(object newItem, int index) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItem, index);
+        public static NotifyCollectionChangedEventArgs CollectionAdd(IList newItems, int startingIndex) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItems, startingIndex);
+        public static NotifyCollectionChangedEventArgs CollectionAdd(object newItem) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItem);
+        public static NotifyCollectionChangedEventArgs CollectionAdd(IList newItems) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItems);
+
+        public static NotifyCollectionChangedEventArgs CollectionRemove(object oldItem, int index) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItem, index);
+        public static NotifyCollectionChangedEventArgs CollectionRemove(IList oldItems, int startingIndex) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItems, startingIndex);
+        public static NotifyCollectionChangedEventArgs CollectionRemove(object oldItem) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItem);
+        public static NotifyCollectionChangedEventArgs CollectionRemove(IList oldItems) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItems);
+
+        public static NotifyCollectionChangedEventArgs CollectionReplace(object newItem, object oldItem, int index) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItem, oldItem, index);
+        public static NotifyCollectionChangedEventArgs CollectionReplace(IList newItems, IList oldItems, int startingIndex) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItems, oldItems, startingIndex);
+        public static NotifyCollectionChangedEventArgs CollectionReplace(object newItem, object oldItem) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItem, oldItem);
+        public static NotifyCollectionChangedEventArgs CollectionReplace(IList newItems, IList oldItems) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, newItems, oldItems);
+
+        public static NotifyCollectionChangedEventArgs CollectionMove(object changedItem, int newIndex, int oldIndex) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, changedItem, newIndex, oldIndex);
+        public static NotifyCollectionChangedEventArgs CollectionMove(IList changedItems, int newStartingIndex, int oldStartingIndex) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, changedItems, newStartingIndex, oldStartingIndex);
+
+        public static NotifyCollectionChangedEventArgs CollectionReset() => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset);
     }
 
     /// <summary>
@@ -132,10 +143,200 @@ namespace BenLib
             }
         }
 
-        private void item_PropertyChanged(object sender, PropertyChangedExtendedEventArgs<T2> e)
+        private void item_PropertyChanged(object sender, PropertyChangedExtendedEventArgs<T2> e) => ItemChangedEvent?.Invoke(sender, e);
+    }
+
+    /// <summary>
+    /// Implementation of a dynamic data collection based on generic Collection&lt;T&gt;,
+    /// implementing INotifyCollectionChanged to notify listeners
+    /// when items get added, removed or the whole list is refreshed.
+    /// </summary>
+    public class BObservableRangeCollection<T> : ObservableCollection<T>
+    {
+        public event NotifyCollectionChangedEventHandler GeneralCollectionChanged;
+
+        public BObservableRangeCollection() { }
+        public BObservableRangeCollection(IEnumerable<T> collection) : base(collection) { }
+        public BObservableRangeCollection(List<T> list) : base(list) { }
+        public BObservableRangeCollection(params T[] array) : base(array) { }
+
+        public void AddRange(IEnumerable<T> collection) => InsertRange(Count, collection);
+        public void AddRange(params T[] array) => InsertRange(Count, array);
+
+        public void InsertRange(int index, IEnumerable<T> collection)
         {
-            ItemChangedEvent?.Invoke(sender, e);
+            if (collection == null) throw new ArgumentNullException(nameof(collection));
+            if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index > Count) throw new ArgumentOutOfRangeException(nameof(index));
+
+            var list = collection.ToArray();
+            if (list.IsNullOrEmpty()) return;
+
+            CheckReentrancy();
+
+            ((List<T>)Items).InsertRange(index, list);
+
+            OnEssentialPropertiesChanged();
+
+            OnCollectionChanged(Collections.CollectionAdd(list, index));
         }
+
+        public void RemoveRange(IEnumerable<T> collection)
+        {
+            if (collection == null) throw new ArgumentNullException(nameof(collection));
+
+            if (Count == 0 || collection.IsNullOrEmpty()) return;
+
+            CheckReentrancy();
+
+            var clusters = new Dictionary<int, List<T>>();
+            int lastIndex = -1;
+            List<T> lastCluster = null;
+            foreach (var item in collection)
+            {
+                int index = IndexOf(item);
+                if (index < 0) continue;
+
+                Items.RemoveAt(index);
+
+                if (lastIndex == index && lastCluster != null) lastCluster.Add(item);
+                else clusters[lastIndex = index] = lastCluster = new List<T> { item };
+            }
+
+            OnEssentialPropertiesChanged();
+
+            if (Count == 0) OnCollectionReset();
+            else foreach (var cluster in clusters) OnCollectionChanged(Collections.CollectionRemove(cluster.Value, cluster.Key));
+        }
+        public void RemoveRange(int index, int count)
+        {
+            if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            if (index + count > Count) throw new ArgumentOutOfRangeException(nameof(index));
+
+            if (count == 0) return;
+
+            var items = (List<T>)Items;
+            var removedItems = items.GetRange(index, count);
+
+            CheckReentrancy();
+
+            items.RemoveRange(index, count);
+
+            OnEssentialPropertiesChanged();
+
+            if (Count == 0) OnCollectionReset();
+            else OnCollectionChanged(Collections.CollectionRemove(removedItems, index));
+        }
+
+        public int RemoveAll(Func<T, bool> predicate) => RemoveAll(0, Count, predicate);
+        public int RemoveAll(int index, int count, Func<T, bool> predicate)
+        {
+            int oldCount = Count;
+            RemoveRange(this.SubCollection(index, count, false).Where(predicate));
+            return Count - oldCount;
+        }
+
+        public void ReplaceRange(IEnumerable<T> collection, Action<T, T> setter) => ReplaceRange(0, Count, collection, setter);
+        public void ReplaceRange(int index, int count, IEnumerable<T> collection, Action<T, T> setter)
+        {
+            if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            if (index + count > Count) throw new ArgumentOutOfRangeException(nameof(index));
+
+            if (collection == null) throw new ArgumentNullException(nameof(collection));
+
+            var list = collection.ToList();
+
+            if (count == 0 && list.IsNullOrEmpty()) return;
+            else if (count == 0) InsertRange(index, list);
+            else if (list.IsNullOrEmpty()) RemoveRange(index, count);
+            else
+            {
+                CheckReentrancy();
+
+                var items = (List<T>)Items;
+                var oldItems = items.GetRange(index, count);
+                for (int i = 0; i < Math.Min(oldItems.Count, list.Count); i++) setter(oldItems[i], list[i]);
+                int diff = oldItems.Count - list.Count;
+                if (diff < 0) items.InsertRange(index + oldItems.Count, list.SubCollection(index + oldItems.Count, -diff, false));
+                if (diff > 0) items.RemoveRange(index + list.Count, diff);
+
+                OnEssentialPropertiesChanged();
+
+                OnCollectionChanged(Collections.CollectionReplace(list, oldItems, index));
+            }
+        }
+
+        protected override void ClearItems()
+        {
+            if (Count == 0) return;
+
+            CheckReentrancy();
+            base.ClearItems();
+            OnEssentialPropertiesChanged();
+            OnCollectionReset();
+        }
+
+        protected override void SetItem(int index, T item)
+        {
+            if (Equals(this[index], item)) return;
+
+            CheckReentrancy();
+            var originalItem = this[index];
+            base.SetItem(index, item);
+
+            OnIndexerPropertyChanged();
+            OnCollectionChanged(Collections.CollectionReplace(originalItem, item, index));
+        }
+
+        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            GeneralCollectionChanged?.Invoke(this, e);
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    foreach (var args in e.NewItems.OfType<T>().Select((i, o) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, o, e.NewStartingIndex + i))) base.OnCollectionChanged(args);
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    foreach (var args in e.OldItems.OfType<T>().Select(o => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, o, e.OldStartingIndex))) base.OnCollectionChanged(args);
+                    break;
+                case NotifyCollectionChangedAction.Replace:
+                    base.OnCollectionChanged(Collections.CollectionReset());
+                    //for (int i = 0; i < Math.Min(e.OldItems.Count, e.NewItems.Count); i++) base.OnCollectionChanged(Collections.CollectionReplace(e.OldItems[i], e.NewItems[i], e.OldStartingIndex + i));
+                    //int diff = e.OldItems.Count - e.NewItems.Count;
+                    //if (diff < 0) for (int i = e.OldItems.Count; i < e.OldItems.Count - diff; i++) base.OnCollectionChanged(Collections.CollectionAdd(e.NewItems[i], e.OldStartingIndex + i));
+                    //if (diff > 0) for (int i = e.NewItems.Count; i < e.NewItems.Count + diff; i++) base.OnCollectionChanged(Collections.CollectionRemove(e.OldItems[i], e.OldStartingIndex + i));
+                    //foreach (var args in e.OldItems.OfType<T>().Select(o => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, o, e.OldStartingIndex))) base.OnCollectionChanged(args);
+                    //foreach (var args in e.NewItems.OfType<T>().Select((i, o) => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, o, e.NewStartingIndex + i))) base.OnCollectionChanged(args);
+                    break;
+                case NotifyCollectionChangedAction.Move:
+                    foreach (var args in e.NewItems.OfType<T>().Select(o => new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Move, o, e.NewStartingIndex, e.OldStartingIndex))) base.OnCollectionChanged(args);
+                    break;
+                case NotifyCollectionChangedAction.Reset:
+                    base.OnCollectionChanged(e);
+                    break;
+            }
+        }
+
+        private void OnEssentialPropertiesChanged()
+        {
+            OnPropertyChanged(EventArgsCache.CountPropertyChanged);
+            OnIndexerPropertyChanged();
+        }
+
+        private void OnIndexerPropertyChanged() => OnPropertyChanged(EventArgsCache.IndexerPropertyChanged);
+        private void OnCollectionReset() => OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
+    }
+
+    /// <remarks>
+    /// To be kept outside <see cref="ObservableCollection{T}"/>, since otherwise, a new instance will be created for each generic type used.
+    /// </remarks>
+    internal static class EventArgsCache
+    {
+        internal static readonly PropertyChangedEventArgs CountPropertyChanged = new PropertyChangedEventArgs("Count");
+        internal static readonly PropertyChangedEventArgs IndexerPropertyChanged = new PropertyChangedEventArgs("Item[]");
+        internal static readonly NotifyCollectionChangedEventArgs ResetCollectionChanged = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset);
     }
 
     public partial class Extensions
@@ -162,52 +363,35 @@ namespace BenLib
 
         public static T[] SubArray<T>(this T[] source, int index, int length)
         {
-            T[] result = new T[length];
+            var result = new T[length];
             Array.Copy(source, index, result, 0, length);
             return result;
         }
 
-        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, int index, int length)
-        {
-            if (source is T[] array)
-            {
-                int count = array.Length - index;
-                if (count < Math.Max(0, length)) throw new ArgumentOutOfRangeException("source");
-                if (length >= 0) count = length;
-
-                var result = new T[count];
-                Array.Copy(array, index, result, 0, count);
-                return result;
-            }
-            else return SubCollectionCore();
-
-            IEnumerable<T> SubCollectionCore()
-            {
-                var enumerator = source.GetEnumerator();
-                for (int i = 0; i < index; i++) { if (!enumerator.MoveNext()) throw new ArgumentOutOfRangeException("source"); }
-                for (int i = index; length > 0 ? i < index + length : true; i++)
-                {
-                    if (!enumerator.MoveNext())
-                    {
-                        if (length > 0) throw new ArgumentOutOfRangeException("source");
-                        break;
-                    }
-
-                    yield return enumerator.Current;
-                }
-            }
-        }
-
-        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, IntInterval interval)
+        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, int index, int length, bool allowExcess) => SubCollection(source, Range<int>.CO(index, index + length), allowExcess);
+        public static IEnumerable<T> SubCollection<T>(this IEnumerable<T> source, Interval<int> interval, bool allowExcess)
         {
             var enumerator = source.GetEnumerator();
-            for (int i = 0; i < interval.Index; i++) { if (!enumerator.MoveNext()) throw new ArgumentOutOfRangeException("source"); }
-            for (int i = interval.Index; interval.ToInfinity ? true : i < interval.LastIndex; i++)
+            var limits = interval.Container;
+            int i = 0;
+            for (; i < limits.Start.Value; i++)
             {
                 if (!enumerator.MoveNext())
                 {
-                    if (!interval.ToInfinity) throw new ArgumentOutOfRangeException("source");
-                    break;
+                    if (allowExcess) yield break;
+                    else throw new ArgumentOutOfRangeException("source");
+                }
+            }
+            for (; i <= limits.End; i++)
+            {
+                if (!enumerator.MoveNext())
+                {
+                    if (!limits.End.IsPositiveInfinity)
+                    {
+                        if (allowExcess) yield break;
+                        else throw new ArgumentOutOfRangeException("source");
+                    }
+                    else yield break;
                 }
 
                 if (interval.Contains(i)) yield return enumerator.Current;
@@ -222,7 +406,7 @@ namespace BenLib
             return z;
         }
 
-        public static IEnumerable<T> DynamicCast<T>(this IEnumerable source) { foreach (dynamic current in source) yield return (T)current; }
+        public static IEnumerable<T> DynamicCast<T>(this IEnumerable source) { foreach (object current in source) yield return (T)current; }
 
         public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || !collection.Any();
 
@@ -232,13 +416,13 @@ namespace BenLib
 
         public static IEnumerable<T> Fill<T>(this ICollection<T> collection) where T : new()
         {
-            foreach (T t in collection) yield return new T();
+            foreach (var t in collection) yield return new T();
         }
 
         public static IEnumerable<T> Fill<T>(this ICollection<T> collection, Func<int, T> fillFunction)
         {
             int i = 0;
-            foreach (T t in collection)
+            foreach (var t in collection)
             {
                 yield return fillFunction(i);
                 i++;
@@ -248,16 +432,27 @@ namespace BenLib
         public static void ForEach<T>(this IEnumerable<T> collection, Action<int, T> action)
         {
             int i = 0;
-            foreach (T t in collection)
+            foreach (var t in collection)
             {
                 action(i, t);
                 i++;
             }
         }
+
+        public static IEnumerable<TResult> Select<TSource, TResult>(this IEnumerable<TSource> source, Func<int, TSource, TResult> selector)
+        {
+            int i = 0;
+            foreach (var item in source)
+            {
+                yield return selector(i, item);
+                i++;
+            }
+        }
+
         public static void ForEach<T>(this IEnumerable<T> collection, Action<int> action)
         {
             int i = 0;
-            foreach (T t in collection)
+            foreach (var t in collection)
             {
                 action(i);
                 i++;
@@ -266,7 +461,7 @@ namespace BenLib
         public static void ForEach<T>(this IEnumerable<T> collection, Action<T> action)
         {
             int i = 0;
-            foreach (T t in collection)
+            foreach (var t in collection)
             {
                 action(t);
                 i++;
@@ -292,7 +487,6 @@ namespace BenLib
 
                 int quotient = big / small;
                 int rest = big - small * quotient;
-                var result = new int[big];
 
                 int currentIndex = 0;
 
@@ -354,8 +548,7 @@ namespace BenLib
             while (enumerator.MoveNext())
             {
                 var current = enumerator.Current;
-                if (predicate(current)) yield return replacement(current);
-                else yield return current;
+                yield return predicate(current) ? replacement(current) : current;
             }
         }
 
@@ -378,8 +571,7 @@ namespace BenLib
             while (enumerator.MoveNext())
             {
                 var current = enumerator.Current;
-                if (current.Equals(toReplace)) yield return replacement(current);
-                else yield return current;
+                yield return current.Equals(toReplace) ? replacement(current) : current;
             }
         }
 
@@ -396,10 +588,10 @@ namespace BenLib
             }
 
             int index = needle.Length - 1;
-            var lastByte = needle.Last();
+            byte lastByte = needle.Last();
             while (index < haystack.Length)
             {
-                var checkByte = haystack[index];
+                byte checkByte = haystack[index];
                 if (checkByte == lastByte)
                 {
                     bool found = true;
@@ -433,10 +625,10 @@ namespace BenLib
             for (int i = 0; i < needle.Length; i++) lookup[needle[i]] = needle.Length - i - 1;
 
             int index = needle.Length - 1;
-            var lastByte = needle.Last();
+            byte lastByte = needle.Last();
             while (index < haystack.Length)
             {
-                var checkByte = haystack[index];
+                byte checkByte = haystack[index];
                 if (haystack[index] == lastByte)
                 {
                     bool found = true;
@@ -467,7 +659,7 @@ namespace BenLib
             int offset = 0;
             while (true)
             {
-                var index = haystack.SubArray(offset, haystack.Length - offset).IndexOf(needle) + offset;
+                int index = haystack.SubArray(offset, haystack.Length - offset).IndexOf(needle) + offset;
                 if (index < offset) break;
                 else
                 {
@@ -479,11 +671,11 @@ namespace BenLib
 
         public static async Task<List<int>> AllIndexesOfAsync(this byte[] haystack, byte[] needle, CancellationToken cancellationToken = default)
         {
-            List<int> indexes = new List<int>();
+            var indexes = new List<int>();
             int offset = 0;
             while (true)
             {
-                var index = await haystack.SubArray(offset, haystack.Length - offset).IndexOfAsync(needle, cancellationToken) + offset;
+                int index = await haystack.SubArray(offset, haystack.Length - offset).IndexOfAsync(needle, cancellationToken) + offset;
                 if (index < offset) break;
                 else
                 {
@@ -501,7 +693,7 @@ namespace BenLib
 
             while (i + length <= collection.Count)
             {
-                if (collection.SubCollection(i, length).SequenceEqual(subCollection))
+                if (collection.SubCollection(i, length, false).SequenceEqual(subCollection))
                 {
                     yield return i;
                     i += length;
@@ -543,7 +735,7 @@ namespace BenLib
             if (source is ICollection<T> collection)
             {
                 int index = Math.Max(collection.Count - count, 0);
-                return source.SubCollection(index, -1);
+                return source.SubCollection(Range<int>.CC(index, null), false);
             }
 
             var queue = new Queue<T>(count);
@@ -574,7 +766,7 @@ namespace BenLib
 
         public static void Sort<T>(this ObservableCollection<T> collection)
         {
-            List<T> li = collection.ToList();
+            var li = collection.ToList();
             li.Sort();
 
             for (int i = 0; i < li.Count; i++)
@@ -585,7 +777,7 @@ namespace BenLib
 
         public static void Sort<T>(this ObservableCollection<T> collection, Comparison<T> comparison)
         {
-            List<T> li = collection.ToList();
+            var li = collection.ToList();
             li.Sort(comparison);
 
             for (int i = 0; i < li.Count; i++)
@@ -596,7 +788,7 @@ namespace BenLib
 
         public static void Sort<T>(this ObservableCollection<T> collection, IComparer<T> comparer)
         {
-            List<T> li = collection.ToList();
+            var li = collection.ToList();
             li.Sort(comparer);
 
             for (int i = 0; i < li.Count; i++)
@@ -607,7 +799,7 @@ namespace BenLib
 
         public static void Sort<T>(this ObservableCollection<T> collection, int index, int count, IComparer<T> comparer)
         {
-            List<T> li = collection.ToList();
+            var li = collection.ToList();
             li.Sort(index, count, comparer);
 
             for (int i = 0; i < li.Count; i++)
@@ -622,7 +814,7 @@ namespace BenLib
 
         public static void OrderByVoid<T, TKey>(this ObservableCollection<T> collection, Func<T, TKey> keySelector)
         {
-            List<T> li = collection.OrderBy(keySelector).ToList();
+            var li = collection.OrderBy(keySelector).ToList();
 
             for (int i = 0; i < li.Count; i++)
             {
@@ -632,7 +824,7 @@ namespace BenLib
 
         public static void OrderByVoid<T, TKey>(this ObservableCollection<T> collection, Func<T, TKey> keySelector, IComparer<TKey> comparer)
         {
-            List<T> li = collection.OrderBy(keySelector, comparer).ToList();
+            var li = collection.OrderBy(keySelector, comparer).ToList();
 
             for (int i = 0; i < li.Count; i++)
             {
@@ -642,7 +834,7 @@ namespace BenLib
 
         public static void OrderByDescendingVoid<T, TKey>(this ObservableCollection<T> collection, Func<T, TKey> keySelector)
         {
-            List<T> li = collection.OrderByDescending(keySelector).ToList();
+            var li = collection.OrderByDescending(keySelector).ToList();
 
             for (int i = 0; i < li.Count; i++)
             {
@@ -652,7 +844,7 @@ namespace BenLib
 
         public static void OrderByDescendingVoid<T, TKey>(this ObservableCollection<T> collection, Func<T, TKey> keySelector, IComparer<TKey> comparer)
         {
-            List<T> li = collection.OrderByDescending(keySelector, comparer).ToList();
+            var li = collection.OrderByDescending(keySelector, comparer).ToList();
 
             for (int i = 0; i < li.Count; i++)
             {
@@ -728,7 +920,7 @@ namespace BenLib
 
         public static ObservableCollection<T> TrimExcess<T>(this ObservableCollection<T> collection)
         {
-            List<T> li = collection.ToList();
+            var li = collection.ToList();
             li.TrimExcess();
 
             return new ObservableCollection<T>(li);
@@ -783,12 +975,7 @@ namespace BenLib
             m_numeratorsEnumerator.Dispose();
         }
 
-        public bool MoveNext()
-        {
-            if (m_numeratorsEnumerator.Current.MoveNext()) return true;
-            else if (m_numeratorsEnumerator.MoveNext()) return MoveNext();
-            else return false;
-        }
+        public bool MoveNext() => m_numeratorsEnumerator.Current.MoveNext() ? true : m_numeratorsEnumerator.MoveNext() ? MoveNext() : false;
 
         public void Reset()
         {
@@ -812,12 +999,7 @@ namespace BenLib
 
         public object Current => m_numeratorsEnumerator.Current.Current;
 
-        public bool MoveNext()
-        {
-            if (m_numeratorsEnumerator.Current.MoveNext()) return true;
-            else if (m_numeratorsEnumerator.MoveNext()) return MoveNext();
-            else return false;
-        }
+        public bool MoveNext() => m_numeratorsEnumerator.Current.MoveNext() ? true : m_numeratorsEnumerator.MoveNext() ? MoveNext() : false;
 
         public void Reset()
         {

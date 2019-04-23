@@ -54,7 +54,7 @@ namespace BenLib.WPF
 
         public static InputBoxResult Show(string Text = "", string Caption = "", ContentTypes ContentType = ContentTypes.Text, Brush BottomBrush = null)
         {
-            InputBox box = new InputBox(Text, Caption, ContentType, BottomBrush);
+            var box = new InputBox(Text, Caption, ContentType, BottomBrush);
             return new InputBoxResult(box.ShowDialog(), box.Text);
         }
 

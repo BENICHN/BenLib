@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,29 +16,36 @@ namespace BenLib.WPF
         #region Champs & Propriétés
 
         private string m_tmp;
-        private Brush m_sBackground;
-        private Brush m_sForeground;
+        private bool m_isTextChecking;
 
-        /// <summary>
-        /// Type de contenu de la <see cref='SwitchableTextBox'/>.
-        /// </summary>
         public ContentTypes ContentType { get => TypedTextBox.GetContentType(tb); set => TypedTextBox.SetContentType(tb, value); }
-        public IEnumerable<string> ForbiddenStrings { get => TypedTextBox.GetForbiddenStrings(tb); set => TypedTextBox.SetForbiddenStrings(tb, value); }
-        public IEnumerable<string> AllowedStrings { get => TypedTextBox.GetAllowedStrings(tb); set => TypedTextBox.SetAllowedStrings(tb, value); }
+        public ICollection<string> ForbiddenStrings { get => TypedTextBox.GetForbiddenStrings(tb); set => TypedTextBox.SetForbiddenStrings(tb, value); }
+        public ICollection<string> AllowedStrings { get => TypedTextBox.GetAllowedStrings(tb); set => TypedTextBox.SetAllowedStrings(tb, value); }
 
-        public Brush SBackground { get => m_sBackground; set => m_sBackground = tb.Background = value; }
-        public Brush SForeground { get => m_sForeground; set => m_sForeground = tb.Foreground = lb.Foreground = value; }
         public Brush SBorderBrush { get; set; }
 
-        /// <summary>
-        /// Contenu de la <see cref='SwitchableTextBox'/>.
-        /// </summary>
+        public Brush SBackground
+        {
+            get => (Brush)GetValue(SBackgroundProperty);
+            set => SetValue(SBackgroundProperty, value);
+        }
+        public static readonly DependencyProperty SBackgroundProperty = DependencyProperty.Register("SBackground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.White, OnSBackgroundChanged));
+
+        public Brush SForeground
+        {
+            get => (Brush)GetValue(SForegroundProperty);
+            set => SetValue(SForegroundProperty, value);
+        }
+        public static readonly DependencyProperty SForegroundProperty = DependencyProperty.Register("SForeground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.Black, OnSForegroundChanged));
+
+        private static void OnSBackgroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Background = (Brush)e.NewValue; }
+        private static void OnSForegroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Foreground = switchableTextBox.lb.Foreground = (Brush)e.NewValue; }
+
         public string Text
         {
             get => (string)GetValue(TextProperty);
             set => tb.Text = value;
         }
-
         public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox));
 
         public string FinalText
@@ -47,20 +53,27 @@ namespace BenLib.WPF
             get => (string)GetValue(FinalTextProperty);
             set => SetValue(FinalTextProperty, value);
         }
-
         public static readonly DependencyProperty FinalTextProperty = DependencyProperty.Register("FinalText", typeof(string), typeof(SwitchableTextBox));
 
-        /// <summary>
-        /// Indique si <see cref='Text'/> est vide.
-        /// </summary>
+        public bool Resistant
+        {
+            get => (bool)GetValue(ResistantProperty);
+            set => SetValue(ResistantProperty, value);
+        }
+        public static readonly DependencyProperty ResistantProperty = DependencyProperty.Register("Resistant", typeof(bool), typeof(SwitchableTextBox));
+
         public bool Empty { get => Text.IsNullOrEmpty(); set => Text = string.Empty; }
 
-        /// <summary>
-        /// Indique si le changement de texte doit être annulé quand celui-ci est vide.
-        /// </summary>
         public bool CancelWhenEmpty { get; set; }
 
+        public Predicate<string> CoerceText { get; set; }
+
         public TextBox TextBox => tb;
+
+        public event EventHandler Activated;
+        public event EventHandler<EventArgs<IInputElement>> Desactivated;
+
+        public bool IsActivated => tb.Visibility == Visibility.Visible;
 
         #endregion
 
@@ -70,9 +83,7 @@ namespace BenLib.WPF
         {
             InitializeComponent();
             Text = string.Empty;
-            //Mouse.Capture(this, CaptureMode.SubTree);
-            //AddHandler(Mouse.PreviewMouseDownOutsideCapturedElementEvent, new MouseButtonEventHandler(HandleClickOutsideOfControl), true);
-            DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(lb, (sender, e) => { SetValue(TextProperty, lb.Text); });
+            DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(lb, (sender, e) => SetValue(TextProperty, lb.Text));
             DependencyPropertyDescriptor.FromProperty(FinalTextProperty, typeof(SwitchableTextBox)).AddValueChanged(this, (sender, e) =>
             {
                 tb.Text = FinalText;
@@ -82,119 +93,117 @@ namespace BenLib.WPF
 
         #endregion
 
-        #region Events
+        #region Méthodes
 
-        /*private void HandleClickOutsideOfControl(object sender, MouseButtonEventArgs e)
-        {
-            Focus();
-            gd.Focus();
-            ReleaseMouseCapture();
-        }*/
+        public bool Activate() => Activate(true);
+        public bool Desactivate(IInputElement newFocus) => Desactivate(newFocus, true);
 
-        private void tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
-
-        private void lb_MouseEnter(object sender, MouseEventArgs e)
+        private void ActivateOver()
         {
             bd.Background = SBackground ?? Brushes.White;
             bd.BorderBrush = SBorderBrush ?? SystemColors.ActiveBorderBrush;
         }
-
-        private void lb_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            tb.Visibility = Visibility.Visible;
-            bd.Visibility = Visibility.Hidden;
-            lb.Visibility = Visibility.Hidden;
-            m_tmp = Text;
-            tb.Focus();
-            tb.SelectAll();
-            e.Handled = true;
-        }
-
-        private void lb_MouseLeave(object sender, MouseEventArgs e)
+        private void DesactivateOver()
         {
             bd.Background = Brushes.Transparent;
             bd.BorderBrush = Brushes.Transparent;
         }
 
-        private void tb_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void ActivateUI()
         {
-            if (e.Key == Key.Enter) gd.Focus();
+            tb.Visibility = Visibility.Visible;
+            bd.Visibility = Visibility.Hidden;
+            lb.Visibility = Visibility.Hidden;
+        }
+        private void DesactivateUI()
+        {
+            tb.Visibility = Visibility.Hidden;
+            bd.Visibility = Visibility.Visible;
+            lb.Visibility = Visibility.Visible;
         }
 
-        private void tb_PreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        private bool Activate(bool notify)
         {
-            if (e.NewFocus is ContextMenu) return;
-
-            bool ReFocus = !SetText();
-
-            if (!ReFocus)
+            ActivateUI();
+            tb.Focus();
+            if (tb.IsKeyboardFocused)
             {
-                tb.Visibility = Visibility.Hidden;
-                bd.Visibility = Visibility.Visible;
-                lb.Visibility = Visibility.Visible;
+                m_tmp = Text;
+                tb.SelectAll();
+                m_isTextChecking = false;
+                if (notify) Activated?.Invoke(this, EventArgs.Empty);
+                return true;
             }
             else
             {
-                tb.Focus();
-                e.Handled = true;
+                DesactivateUI();
+                return false;
+            }
+        }
+        private bool Desactivate(IInputElement newFocus, bool notify)
+        {
+            if (m_isTextChecking) return false;
+            else if (SetText())
+            {
+                DesactivateUI();
+                var focus = newFocus ?? lbc;
+                if (!focus.Focusable) focus = lbc;
+                focus.Focus();
+                if (notify) Desactivated?.Invoke(this, EventArgsHelper.Create(newFocus));
+                return true;
+            }
+            else
+            {
+                Activate(false);
+                return false;
             }
         }
 
         private bool SetText()
         {
-            if (!Empty)
-            {
-                switch (ContentType)
-                {
-                    case ContentTypes.Integer:
-                    case ContentTypes.UnsignedInteger:
-                        {
-                            try
-                            {
-                                Text = int.Parse(Text).ToString();
-                            }
-                            catch (Exception ex)
-                            {
-                                if (!AllowedStrings.Contains(Text))
-                                {
-                                    MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return false;
-                                }
-                            }
-                        }
-                        break;
-
-                    case ContentTypes.Double:
-                    case ContentTypes.UnsignedDouble:
-                        {
-                            try
-                            {
-                                Text = double.Parse(Text.Replace(',', '.'), Literal.DecimalSeparatorPoint).ToString();
-                            }
-                            catch (Exception ex)
-                            {
-                                try { Text = double.Parse(Text).ToString(); }
-                                catch
-                                {
-
-                                    if (!AllowedStrings.Contains(Text))
-                                    {
-                                        MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                }
-            }
+            m_isTextChecking = true;
+            if (!Empty) return !(m_isTextChecking = !(AllowedStrings?.Contains(Text) ?? false) && !(CoerceText?.Invoke(Text) ?? true));
             else if (CancelWhenEmpty) Text = m_tmp;
 
-            SetValue(FinalTextProperty, lb.Text);
-            return true;
+            FinalText = lb.Text;
+            return !(m_isTextChecking = true);
         }
 
-        private void gd_GotFocus(object sender, RoutedEventArgs e) => RaiseEvent(new RoutedEventArgs(LostFocusEvent, this));
+        #endregion
+
+        #region Events
+
+        private void Lbc_MouseEnter(object sender, MouseEventArgs e) { if (!Resistant) ActivateOver(); }
+        private void Lbc_MouseLeave(object sender, MouseEventArgs e) => DesactivateOver();
+
+        private void Lbc_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) Activate(); }
+
+        private void Lbc_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!Resistant)
+            {
+                Activate();
+                e.Handled = true;
+            }
+        }
+        private void Lbc_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (Resistant)
+            {
+                Activate();
+                e.Handled = true;
+            }
+        }
+
+        private void Tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
+
+        private void Tb_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) Desactivate(null); }
+
+        private void Tb_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            if (e.NewFocus == null || e.NewFocus == lbc || e.NewFocus is ContextMenu) return;
+            if (!Desactivate(e.NewFocus)) e.Handled = true;
+        }
 
         #endregion
     }

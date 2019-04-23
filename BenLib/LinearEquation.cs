@@ -32,10 +32,13 @@ namespace BenLib
         /// <param name="c">Constante de l'équation</param>
         public LinearEquation(double a, double b, double c)
         {
-            if (a == 0 && b == 0) throw new ArgumentException("Les coefficients de x et de y ne doivent pas être tous les deux nuls");
-            A = a;
-            B = b;
-            C = c;
+            if (a == 0 && b == 0) A = B = C = double.NaN;
+            else
+            {
+                A = a;
+                B = b;
+                C = c;
+            }
         }
 
         /// <summary>

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
-using System.Windows.Media.Imaging;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
-using System.Text;
-using System.Drawing.Imaging;
+using System.Windows.Media.Imaging;
 
 namespace BenLib
 {
@@ -123,7 +123,7 @@ namespace BenLib
             public static FileIconAndType GetFileIconAndType(string path, FileAttributes? attr = null, SystemIconSize iconSize = SystemIconSize.Small)
             {
                 if (path != null && path[1] == ':' && path.Length == 2) path += @"\";
-                NativeMethods.SHFILEINFO shFileInfo = new NativeMethods.SHFILEINFO();
+                var shFileInfo = new NativeMethods.SHFILEINFO();
                 int cbFileInfo = Marshal.SizeOf(shFileInfo);
                 var flags = NativeMethods.SHGFI.TypeName;
                 if (attr != null && path.Length > 3) flags |= NativeMethods.SHGFI.UseFileAttributes;
@@ -284,10 +284,10 @@ namespace BenLib
             [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
             public struct SHSTOCKICONINFO
             {
-                public UInt32 cbSize;
+                public uint cbSize;
                 public IntPtr hIcon;
-                public Int32 iSysIconIndex;
-                public Int32 iIcon;
+                public int iSysIconIndex;
+                public int iIcon;
                 [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)]
                 public string szPath;
             }
@@ -547,7 +547,7 @@ namespace BenLib
             /// <param name="flags">Specifies flags that control this function. These flags are the LR_* flags used by the LoadImage function</param>
             /// <returns></returns>
             [DllImport("User32.dll", CharSet = CharSet.Auto)]
-            public static extern UInt32 PrivateExtractIcons(string lpszFile, int nIconIndex, int cxIcon, int cyIcon, IntPtr[] phicon, IntPtr[] piconid, UInt32 nIcons, UInt32 flags);
+            public static extern uint PrivateExtractIcons(string lpszFile, int nIconIndex, int cxIcon, int cyIcon, IntPtr[] phicon, IntPtr[] piconid, uint nIcons, uint flags);
 
             /// <summary>
             /// Sends the specified message to a window or windows. The SendMessage function calls the window procedure for the specified window and does not return until the window procedure has processed the message.
@@ -580,7 +580,7 @@ namespace BenLib
             /// <param name="psii">A pointer to a SHSTOCKICONINFO structure. When this function is called, the cbSize member of this structure needs to be set to the size of the SHSTOCKICONINFO structure. When this function returns, contains a pointer to a SHSTOCKICONINFO structure that contains the requested information</param>
             /// <returns></returns>
             [DllImport("Shell32.dll", SetLastError = false)]
-            public static extern Int32 SHGetStockIconInfo(SIID siid, SHGSI uFlags, ref SHSTOCKICONINFO psii);
+            public static extern int SHGetStockIconInfo(SIID siid, SHGSI uFlags, ref SHSTOCKICONINFO psii);
 
             /// <summary>
             /// Destroys an icon and frees any memory the icon occupied.
@@ -601,48 +601,27 @@ namespace BenLib
         /// </summary>
         /// <param name="bitmap">Image au format System.Drawing.Bitmap</param>
         /// <returns>Objet de type BitmapSource correspondant au paramètre entrant</returns>
-        public static BitmapSource ToSource(this Bitmap bitmap)
-        {
-            return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-        }
+        public static BitmapSource ToSource(this Bitmap bitmap) => System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
 
         public static Bitmap ToBitmap(this BitmapSource source)
         {
-            Bitmap bmp = new Bitmap(source.PixelWidth, source.PixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-            BitmapData data = bmp.LockBits(new Rectangle(System.Drawing.Point.Empty, bmp.Size), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            var bmp = new Bitmap(source.PixelWidth, source.PixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            var data = bmp.LockBits(new Rectangle(System.Drawing.Point.Empty, bmp.Size), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
             source.CopyPixels(Int32Rect.Empty, data.Scan0, data.Height * data.Stride, data.Stride);
             bmp.UnlockBits(data);
             return bmp;
         }
 
-        public static System.Windows.Media.Color ToMediaColor(this System.Drawing.Color color)
-        {
-            return System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
-        }
+        public static System.Windows.Media.Color ToMediaColor(this System.Drawing.Color color) => System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
 
-        public static System.Drawing.Color ToDrawingColor(this System.Windows.Media.Color color)
-        {
-            return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
-        }
+        public static System.Drawing.Color ToDrawingColor(this System.Windows.Media.Color color) => System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
 
-        public static string ToHex(this System.Drawing.Color c)
-        {
-            return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-        }
+        public static string ToHex(this System.Drawing.Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
-        public static string ToRGB(this System.Drawing.Color c)
-        {
-            return "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
-        }
+        public static string ToRGB(this System.Drawing.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
 
-        public static string ToHex(this System.Windows.Media.Color c)
-        {
-            return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-        }
+        public static string ToHex(this System.Windows.Media.Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
-        public static string ToRGB(this System.Windows.Media.Color c)
-        {
-            return "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
-        }
+        public static string ToRGB(this System.Windows.Media.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
     }
 }

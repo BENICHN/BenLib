@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Principal;
-using System.Threading.Tasks;
-using System.Reflection;
-using System.IO;
-using IniParser;
+﻿using IniParser;
 using IniParser.Model;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Security.Principal;
 using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
 
 namespace BenLib
 {
@@ -29,14 +30,14 @@ namespace BenLib
 
         public static void ExtractEmbeddedResource(this Assembly assembly, string outputPath, string resource)
         {
-            using (Stream stream = assembly.GetManifestResourceStream(resource))
-            using (FileStream fileStream = new FileStream(outputPath, FileMode.Create)) stream.CopyTo(fileStream);
+            using (var stream = assembly.GetManifestResourceStream(resource))
+            using (var fileStream = new FileStream(outputPath, FileMode.Create)) stream.CopyTo(fileStream);
         }
 
         public static Task ExtractEmbeddedResourceAsync(this Assembly assembly, string outputPath, string resource)
         {
-            using (Stream stream = assembly.GetManifestResourceStream(resource))
-            using (FileStream fileStream = new FileStream(outputPath, FileMode.Create)) return stream.CopyToAsync(fileStream);
+            using (var stream = assembly.GetManifestResourceStream(resource))
+            using (var fileStream = new FileStream(outputPath, FileMode.Create)) return stream.CopyToAsync(fileStream);
         }
 
         public static object GetPropValue(this object src, string propName) => src.GetType().GetProperty(propName).GetValue(src, null);
@@ -48,9 +49,9 @@ namespace BenLib
             try
             {
                 src.GetPropValue(propName);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex.InnerException); }
+            catch (Exception ex) { return ex.InnerException; }
         }
 
         public static TryResult TryDispose(this IDisposable disposable)
@@ -58,9 +59,9 @@ namespace BenLib
             try
             {
                 disposable.Dispose();
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult TryWriteFile(this FileIniDataParser parser, string filePath, IniData parsedData, Encoding fileEncoding = null)
@@ -68,9 +69,9 @@ namespace BenLib
             try
             {
                 parser.WriteFile(filePath, parsedData, fileEncoding);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static async Task<TryResult> TryAndRetryWriteFile(this FileIniDataParser parser, string filePath, IniData parsedData, Encoding fileEncoding = null, int times = 10, int delay = 50, Action middleAction = null, Task middleTask = null)
@@ -78,23 +79,23 @@ namespace BenLib
             try
             {
                 await Threading.MultipleAttempts(() => parser.WriteFile(filePath, parsedData, fileEncoding), times, delay, true, middleAction, middleTask);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static DateTime GetLinkerTime(this Assembly assembly, TimeZoneInfo target = null)
         {
-            var filePath = assembly.Location;
+            string filePath = assembly.Location;
             const int c_PeHeaderOffset = 60;
             const int c_LinkerTimestampOffset = 8;
 
-            var buffer = new byte[2048];
+            byte[] buffer = new byte[2048];
 
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read)) stream.Read(buffer, 0, 2048);
 
-            var offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
-            var secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
+            int offset = BitConverter.ToInt32(buffer, c_PeHeaderOffset);
+            int secondsSince1970 = BitConverter.ToInt32(buffer, offset + c_LinkerTimestampOffset);
             var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
             var linkTimeUtc = epoch.AddSeconds(secondsSince1970);
@@ -104,6 +105,14 @@ namespace BenLib
 
             return localTime;
         }
+
+        public static T Edit<T>(this T obj, Action<T> edition)
+        {
+            edition(obj);
+            return obj;
+        }
+
+        public static bool IsEmpty(this Size size) => size.IsEmpty || size.Width <= 0 || size.Height <= 0;
     }
 
     public struct TryResult
@@ -113,8 +122,21 @@ namespace BenLib
             Result = result;
             Exception = exception;
         }
+
         public bool Result { get; set; }
         public Exception Exception { get; set; }
+        public bool HasException => Exception != null;
+
+        public bool ShowException()
+        {
+            Threading.ShowException(Exception);
+            return Result;
+        }
+
+        public static implicit operator bool(TryResult result) => result.Result;
+        public static implicit operator Exception(TryResult result) => result.Exception;
+        public static implicit operator TryResult(bool result) =>new TryResult(result);
+        public static implicit operator TryResult(Exception ex) =>new TryResult(false, ex);
     }
 
     public class DescendingComparer<T> : IComparer<T> where T : IComparable<T>

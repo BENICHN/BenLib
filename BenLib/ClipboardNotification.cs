@@ -23,10 +23,7 @@ namespace BenLib
         /// Raises the <see cref="ClipboardUpdate"/> event.
         /// </summary>
         /// <param name="e">Event arguments for the event.</param>
-        private static void OnClipboardUpdate(EventArgs e)
-        {
-            ClipboardUpdate?.Invoke(null, e);
-        }
+        private static void OnClipboardUpdate(EventArgs e) => ClipboardUpdate?.Invoke(null, e);
 
         /// <summary>
         /// Hidden form to recieve the WM_CLIPBOARDUPDATE message.

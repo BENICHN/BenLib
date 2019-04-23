@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -104,6 +105,8 @@ namespace BenLib
             dt.Start();
         }
 
+        public static Task WaitForValue(Func<object> getter, object value, int millisecondsDelay = 10, CancellationToken cancellationToken = default) => Task.Run(async () => { while (!getter().Equals(value)) await Task.Delay(millisecondsDelay); }, cancellationToken);
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
         [DllImport("kernel32.dll")]
@@ -112,6 +115,8 @@ namespace BenLib
         public static extern int ResumeThread(IntPtr hThread);
         [DllImport("kernel32", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool CloseHandle(IntPtr handle);
+
+        public static MessageBoxResult ShowException(Exception ex) => ex == null ? MessageBoxResult.None : MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     [Flags]
@@ -158,9 +163,9 @@ namespace BenLib
             try
             {
                 process.Kill();
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static async Task<bool> StartAsync(this Process process, CancellationToken cancellationToken = default)
@@ -173,9 +178,9 @@ namespace BenLib
         public static TryResult TryStart(this Process process)
         {
             try { process.Start(); }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
 
-            return new TryResult(true);
+            return true;
         }
 
         public static async Task<TryResult> TryStartAsync(this Process process, CancellationToken cancellationToken)
@@ -188,11 +193,11 @@ namespace BenLib
                     try { process.Start(); }
                     catch (Exception ex) { e = ex; }
                 }, cancellationToken);
-                if (e != null) return new TryResult(false, e);
+                if (e != null) return e;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
 
-            return new TryResult(true);
+            return true;
         }
 
         public static Task WithCancellation(this Task task, CancellationToken cancellationToken) => task.IsCompleted ? task : task.ContinueWith(completedTask => { }, cancellationToken, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -251,7 +256,7 @@ namespace BenLib
 
             foreach (ProcessThread pT in process.Threads)
             {
-                IntPtr pOpenThread = Threading.OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
+                var pOpenThread = Threading.OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
 
                 if (pOpenThread == IntPtr.Zero) continue;
 
@@ -266,9 +271,9 @@ namespace BenLib
             try
             {
                 process.Suspend();
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static void Resume(this Process process)
@@ -277,11 +282,11 @@ namespace BenLib
 
             foreach (ProcessThread pT in process.Threads)
             {
-                IntPtr pOpenThread = Threading.OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
+                var pOpenThread = Threading.OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
 
                 if (pOpenThread == IntPtr.Zero) continue;
 
-                var suspendCount = 0;
+                int suspendCount = 0;
 
                 do suspendCount = Threading.ResumeThread(pOpenThread);
                 while (suspendCount > 0);
@@ -295,9 +300,9 @@ namespace BenLib
             try
             {
                 process.Resume();
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
     }
 
@@ -343,10 +348,7 @@ namespace BenLib
         ///<returns>
         ///true if this command can be executed; otherwise, false.
         ///</returns>
-        public bool CanExecute(object parameter)
-        {
-            return _canExecute == null ? true : _canExecute((T)parameter);
-        }
+        public bool CanExecute(object parameter) => _canExecute == null ? true : _canExecute((T)parameter);
 
         ///<summary>
         ///Occurs when changes occur that affect whether or not the command should execute.
@@ -361,10 +363,7 @@ namespace BenLib
         ///Defines the method to be called when the command is invoked.
         ///</summary>
         ///<param name="parameter">Data used by the command. If the command does not require data to be passed, this object can be set to <see langword="null" />.</param>
-        public void Execute(object parameter)
-        {
-            _execute((T)parameter);
-        }
+        public void Execute(object parameter) => _execute((T)parameter);
 
         #endregion
     }
@@ -501,9 +500,9 @@ namespace BenLib
     public struct PauseToken
     {
         private readonly PauseTokenSource m_source;
-        internal PauseToken(PauseTokenSource source) { m_source = source; }
+        internal PauseToken(PauseTokenSource source) => m_source = source;
 
-        public bool IsPaused { get { return m_source != null && m_source.IsPaused; } }
+        public bool IsPaused => m_source != null && m_source.IsPaused;
 
         public Task WaitWhilePausedAsync() => IsPaused ? m_source.WaitWhilePausedAsync() : PauseTokenSource.s_completedTask;
     }

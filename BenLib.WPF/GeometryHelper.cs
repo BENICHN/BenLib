@@ -129,11 +129,11 @@ namespace BenLib.WPF
             var og1 = g1.GetWidenedPathGeometry(new Pen(Brushes.Black, 1.0));
             var og2 = g2.GetWidenedPathGeometry(new Pen(Brushes.Black, 1.0));
             var cg = Geometry.Combine(og1, og2, GeometryCombineMode.Intersect, null, 0, ToleranceType.Absolute);
-            PathGeometry pg = cg.GetFlattenedPathGeometry();
-            Point[] result = new Point[pg.Figures.Count];
+            var pg = cg.GetFlattenedPathGeometry();
+            var result = new Point[pg.Figures.Count];
             for (int i = 0; i < pg.Figures.Count; i++)
             {
-                Rect fig = new PathGeometry(new PathFigure[] { pg.Figures[i] }).Bounds;
+                var fig = new PathGeometry(new PathFigure[] { pg.Figures[i] }).Bounds;
                 result[i] = new Point(fig.Left + fig.Width / 2.0, fig.Top + fig.Height / 2.0);
             }
             return result;
@@ -150,8 +150,7 @@ namespace BenLib.WPF
                 else
                 {
                     var a = endpoints.Current;
-                    if (endpoints.MoveNext()) return (a, endpoints.Current);
-                    else return null;
+                    return endpoints.MoveNext() ? ((Point A, Point B)?)(a, endpoints.Current) : null;
                 }
             }
 
@@ -239,8 +238,9 @@ namespace BenLib.WPF
                     }
                 }
 
-                if (startPoint.HasValue) yield return new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false);
-                else yield return new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
+                yield return startPoint.HasValue
+                    ? new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false)
+                    : new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
             }
         }
 
@@ -255,7 +255,7 @@ namespace BenLib.WPF
             {
                 byte count = 0;
 
-                if (Intersects(lineStart, lineEnd, rect.TopLeft, rect.TopRight, out Point point))
+                if (Intersects(lineStart, lineEnd, rect.TopLeft, rect.TopRight, out var point))
                 {
                     yield return point;
                     count++;
@@ -282,8 +282,7 @@ namespace BenLib.WPF
                     if (count == 2) yield break;
                 }
 
-                if (rect.Contains(lineStart)) yield return lineStart;
-                else yield return lineEnd;
+                yield return rect.Contains(lineStart) ? lineStart : lineEnd;
             }
         }
 
@@ -291,13 +290,13 @@ namespace BenLib.WPF
         {
             intersection = new Point(0, 0);
 
-            Vector b = a2 - a1;
-            Vector d = b2 - b1;
+            var b = a2 - a1;
+            var d = b2 - b1;
             double bDotDPerp = b.X * d.Y - b.Y * d.X;
 
             if (bDotDPerp == 0) return false;
 
-            Vector c = b1 - a1;
+            var c = b1 - a1;
             double t = (c.X * d.Y - c.Y * d.X) / bDotDPerp;
             if (t < 0 || t > 1) return false;
 
@@ -348,7 +347,7 @@ namespace BenLib.WPF
             double divisor = pointsCount - 1;
             for (int i = 0; i < pointsCount; i++)
             {
-                pathGeometry.GetPointAtFractionLength(i / divisor, out var point, out var tangent);
+                pathGeometry.GetPointAtFractionLength(i / divisor, out var point, out _);
                 yield return point;
             }
         }
@@ -385,6 +384,13 @@ namespace BenLib.WPF
             if (shape is Polyline polyline) return GeometryHelper.GetCurve(polyline.Points.ToArray(), false, false);
             if (shape is Rectangle rectangle) return new RectangleGeometry(new Rect(Canvas.GetLeft(rectangle), Canvas.GetTop(rectangle), rectangle.Width, rectangle.Height), rectangle.RadiusX, rectangle.RadiusY);
             return shape.RenderedGeometry;
+        }
+
+        public static bool FillContainsFigure(this Geometry g1, Geometry g2)
+        {
+            if (g2 is PathGeometry pathGeometry && pathGeometry.Figures.Count > 1) foreach (var geometry in Geometry.Combine(g2, g2, GeometryCombineMode.Intersect, null).Figures.Select(figure => new PathGeometry(new[] { figure }))) { if (g1.FillContains(geometry)) return true; }
+            else return g1.FillContains(g2);
+            return false;
         }
     }
 }

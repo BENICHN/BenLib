@@ -16,15 +16,9 @@ namespace BenLib.WPF
     {
         #region FontWeight
 
-        public static FontWeight GetFontWeight(DependencyObject obj)
-        {
-            return (FontWeight)obj.GetValue(FontWeightProperty);
-        }
+        public static FontWeight GetFontWeight(DependencyObject obj) => (FontWeight)obj.GetValue(FontWeightProperty);
 
-        public static void SetFontWeight(DependencyObject obj, FontWeight value)
-        {
-            obj.SetValue(FontWeightProperty, value);
-        }
+        public static void SetFontWeight(DependencyObject obj, FontWeight value) => obj.SetValue(FontWeightProperty, value);
 
         // Using a DependencyProperty as the backing store for FontWeight.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty FontWeightProperty = DependencyProperty.RegisterAttached("FontWeight", typeof(FontWeight), typeof(HighlightableTextBlock), new PropertyMetadata(FontWeights.Regular, Refresh));
@@ -33,15 +27,9 @@ namespace BenLib.WPF
 
         #region FontStyle
 
-        public static FontStyle GetFontStyle(DependencyObject obj)
-        {
-            return (FontStyle)obj.GetValue(FontStyleProperty);
-        }
+        public static FontStyle GetFontStyle(DependencyObject obj) => (FontStyle)obj.GetValue(FontStyleProperty);
 
-        public static void SetFontStyle(DependencyObject obj, FontStyle value)
-        {
-            obj.SetValue(FontStyleProperty, value);
-        }
+        public static void SetFontStyle(DependencyObject obj, FontStyle value) => obj.SetValue(FontStyleProperty, value);
 
         // Using a DependencyProperty as the backing store for FontStyle.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty FontStyleProperty = DependencyProperty.RegisterAttached("FontStyle", typeof(FontStyle), typeof(HighlightableTextBlock), new PropertyMetadata(FontStyles.Normal, Refresh));
@@ -50,15 +38,9 @@ namespace BenLib.WPF
 
         #region Underline
 
-        public static bool GetUnderline(DependencyObject obj)
-        {
-            return (bool)obj.GetValue(UnderlineProperty);
-        }
+        public static bool GetUnderline(DependencyObject obj) => (bool)obj.GetValue(UnderlineProperty);
 
-        public static void SetUnderline(DependencyObject obj, bool value)
-        {
-            obj.SetValue(UnderlineProperty, value);
-        }
+        public static void SetUnderline(DependencyObject obj, bool value) => obj.SetValue(UnderlineProperty, value);
 
         // Using a DependencyProperty as the backing store for Underline.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty UnderlineProperty = DependencyProperty.RegisterAttached("Underline", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false, Refresh));
@@ -67,15 +49,9 @@ namespace BenLib.WPF
 
         #region HighlightTextBrush
 
-        public static Brush GetHighlightTextBrush(DependencyObject obj)
-        {
-            return (Brush)obj.GetValue(HighlightTextBrushProperty);
-        }
+        public static Brush GetHighlightTextBrush(DependencyObject obj) => (Brush)obj.GetValue(HighlightTextBrushProperty);
 
-        public static void SetHighlightTextBrush(DependencyObject obj, Brush value)
-        {
-            obj.SetValue(HighlightTextBrushProperty, value);
-        }
+        public static void SetHighlightTextBrush(DependencyObject obj, Brush value) => obj.SetValue(HighlightTextBrushProperty, value);
 
         // Using a DependencyProperty as the backing store for HighlightTextBrush.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty HighlightTextBrushProperty = DependencyProperty.RegisterAttached("HighlightTextBrush", typeof(Brush), typeof(HighlightableTextBlock), new PropertyMetadata(SystemColors.HighlightTextBrush, Refresh));
@@ -84,15 +60,9 @@ namespace BenLib.WPF
 
         #region HighlightBrush
 
-        public static Brush GetHighlightBrush(DependencyObject obj)
-        {
-            return (Brush)obj.GetValue(HighlightBrushProperty);
-        }
+        public static Brush GetHighlightBrush(DependencyObject obj) => (Brush)obj.GetValue(HighlightBrushProperty);
 
-        public static void SetHighlightBrush(DependencyObject obj, Brush value)
-        {
-            obj.SetValue(HighlightBrushProperty, value);
-        }
+        public static void SetHighlightBrush(DependencyObject obj, Brush value) => obj.SetValue(HighlightBrushProperty, value);
 
         // Using a DependencyProperty as the backing store for HighlightBrush.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty HighlightBrushProperty = DependencyProperty.RegisterAttached("HighlightBrush", typeof(Brush), typeof(HighlightableTextBlock), new PropertyMetadata(SystemColors.HighlightBrush, Refresh));
@@ -101,15 +71,9 @@ namespace BenLib.WPF
 
         #region HighlightText
 
-        public static string GetHightlightText(DependencyObject obj)
-        {
-            return (string)obj.GetValue(HightlightTextProperty);
-        }
+        public static string GetHightlightText(DependencyObject obj) => (string)obj.GetValue(HightlightTextProperty);
 
-        public static void SetHightlightText(DependencyObject obj, string value)
-        {
-            obj.SetValue(HightlightTextProperty, value);
-        }
+        public static void SetHightlightText(DependencyObject obj, string value) => obj.SetValue(HightlightTextProperty, value);
 
         // Using a DependencyProperty as the backing store for HightlightText.  This enables animation, styling, binding, etc...
         public static readonly DependencyProperty HightlightTextProperty = DependencyProperty.RegisterAttached("HightlightText", typeof(string), typeof(HighlightableTextBlock), new PropertyMetadata(string.Empty, Refresh));
@@ -118,15 +82,9 @@ namespace BenLib.WPF
 
         #region InternalText
 
-        protected static string GetInternalText(DependencyObject obj)
-        {
-            return (string)obj.GetValue(InternalTextProperty);
-        }
+        protected static string GetInternalText(DependencyObject obj) => (string)obj.GetValue(InternalTextProperty);
 
-        protected static void SetInternalText(DependencyObject obj, string value)
-        {
-            obj.SetValue(InternalTextProperty, value);
-        }
+        protected static void SetInternalText(DependencyObject obj, string value) => obj.SetValue(InternalTextProperty, value);
 
         // Using a DependencyProperty as the backing store for InternalText.  This enables animation, styling, binding, etc...
         protected static readonly DependencyProperty InternalTextProperty = DependencyProperty.RegisterAttached("InternalText", typeof(string), typeof(HighlightableTextBlock), new PropertyMetadata(string.Empty, OnInternalTextChanged));
@@ -144,15 +102,9 @@ namespace BenLib.WPF
 
         #region  IsBusy 
 
-        private static bool GetIsBusy(DependencyObject obj)
-        {
-            return (bool)obj.GetValue(IsBusyProperty);
-        }
+        private static bool GetIsBusy(DependencyObject obj) => (bool)obj.GetValue(IsBusyProperty);
 
-        private static void SetIsBusy(DependencyObject obj, bool value)
-        {
-            obj.SetValue(IsBusyProperty, value);
-        }
+        private static void SetIsBusy(DependencyObject obj, bool value) => obj.SetValue(IsBusyProperty, value);
 
         // Using a DependencyProperty as the backing store for IsBusy.  This enables animation, styling, binding, etc...
         private static readonly DependencyProperty IsBusyProperty = DependencyProperty.RegisterAttached("IsBusy", typeof(bool), typeof(HighlightableTextBlock), new PropertyMetadata(false));
@@ -179,10 +131,7 @@ namespace BenLib.WPF
 
         #region Methods
 
-        private static void Refresh(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            Highlight(d as TextBlock);
-        }
+        private static void Refresh(DependencyObject d, DependencyPropertyChangedEventArgs e) => Highlight(d as TextBlock);
 
         private static void Highlight(TextBlock textblock)
         {
@@ -217,7 +166,7 @@ namespace BenLib.WPF
             {
                 SetIsBusy(textblock, true);
 
-                var toHighlight = GetHightlightText(textblock);
+                string toHighlight = GetHightlightText(textblock);
 
                 if (!string.IsNullOrEmpty(toHighlight))
                 {

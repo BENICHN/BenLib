@@ -1,7 +1,6 @@
 //----------------------------------------------
 // ArrowLineBase.cs (c) 2007 by Charles Petzold
 //----------------------------------------------
-using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -17,11 +16,10 @@ namespace BenLib.WPF
         protected PathGeometry pathgeo;
         protected PathFigure pathfigLine;
         protected PolyLineSegment polysegLine;
-
-        PathFigure pathfigHead1;
-        PolyLineSegment polysegHead1;
-        PathFigure pathfigHead2;
-        PolyLineSegment polysegHead2;
+        private readonly PathFigure pathfigHead1;
+        private readonly PolyLineSegment polysegHead1;
+        private readonly PathFigure pathfigHead2;
+        private readonly PolyLineSegment polysegHead2;
 
         /// <summary>
         ///     Identifies the ArrowAngle dependency property.
@@ -37,8 +35,8 @@ namespace BenLib.WPF
         /// </summary>
         public double ArrowAngle
         {
-            set { SetValue(ArrowAngleProperty, value); }
-            get { return (double)GetValue(ArrowAngleProperty); }
+            set => SetValue(ArrowAngleProperty, value);
+            get => (double)GetValue(ArrowAngleProperty);
         }
 
         /// <summary>
@@ -55,8 +53,8 @@ namespace BenLib.WPF
         /// </summary>
         public double ArrowLength
         {
-            set { SetValue(ArrowLengthProperty, value); }
-            get { return (double)GetValue(ArrowLengthProperty); }
+            set => SetValue(ArrowLengthProperty, value);
+            get => (double)GetValue(ArrowLengthProperty);
         }
 
         /// <summary>
@@ -74,8 +72,8 @@ namespace BenLib.WPF
         /// </summary>
         public ArrowEnd ArrowEnds
         {
-            set { SetValue(ArrowEndsProperty, value); }
-            get { return (ArrowEnd)GetValue(ArrowEndsProperty); }
+            set => SetValue(ArrowEndsProperty, value);
+            get => (ArrowEnd)GetValue(ArrowEndsProperty);
         }
 
         /// <summary>
@@ -93,8 +91,8 @@ namespace BenLib.WPF
         /// </summary>
         public bool IsArrowClosed
         {
-            set { SetValue(IsArrowClosedProperty, value); }
-            get { return (bool)GetValue(IsArrowClosedProperty); }
+            set => SetValue(IsArrowClosedProperty, value);
+            get => (bool)GetValue(IsArrowClosedProperty);
         }
 
         /// <summary>
@@ -131,17 +129,17 @@ namespace BenLib.WPF
                     // Draw the arrow at the start of the line.
                     if ((ArrowEnds & ArrowEnd.Start) == ArrowEnd.Start)
                     {
-                        Point pt1 = pathfigLine.StartPoint;
-                        Point pt2 = polysegLine.Points[0];
+                        var pt1 = pathfigLine.StartPoint;
+                        var pt2 = polysegLine.Points[0];
                         pathgeo.Figures.Add(CalculateArrow(pathfigHead1, pt2, pt1));
                     }
 
                     // Draw the arrow at the end of the line.
                     if ((ArrowEnds & ArrowEnd.End) == ArrowEnd.End)
                     {
-                        Point pt1 = count == 1 ? pathfigLine.StartPoint :
+                        var pt1 = count == 1 ? pathfigLine.StartPoint :
                                                  polysegLine.Points[count - 2];
-                        Point pt2 = polysegLine.Points[count - 1];
+                        var pt2 = polysegLine.Points[count - 1];
                         pathgeo.Figures.Add(CalculateArrow(pathfigHead2, pt1, pt2));
                     }
                 }
@@ -149,14 +147,14 @@ namespace BenLib.WPF
             }
         }
 
-        PathFigure CalculateArrow(PathFigure pathfig, Point pt1, Point pt2)
+        private PathFigure CalculateArrow(PathFigure pathfig, Point pt1, Point pt2)
         {
-            Matrix matx = new Matrix();
-            Vector vect = pt1 - pt2;
+            var matx = new Matrix();
+            var vect = pt1 - pt2;
             vect.Normalize();
             vect *= ArrowLength;
 
-            PolyLineSegment polyseg = pathfig.Segments[0] as PolyLineSegment;
+            var polyseg = pathfig.Segments[0] as PolyLineSegment;
             polyseg.Points.Clear();
             matx.Rotate(ArrowAngle / 2);
             pathfig.StartPoint = pt2 + vect * matx;

@@ -1,11 +1,14 @@
 ﻿using System;
+using System.CodeDom;
+using System.CodeDom.Compiler;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Globalization;
-using System.Linq;
-using System.Windows.Media;
-using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Media;
 
 namespace BenLib
 {
@@ -44,6 +47,11 @@ namespace BenLib
 
     public static partial class Extensions
     {
+        public static string ToSubscript(this int i) => i.ToString().ToSubscript();
+        public static string ToSuperscript(this int i) => i.ToString().ToSuperscript();
+        public static string ToSubscript(this string s) => s.Replace('0', '₀').Replace('1', '₁').Replace('2', '₂').Replace('3', '₃').Replace('4', '₄').Replace('5', '₅').Replace('6', '₆').Replace('7', '₇').Replace('8', '₈').Replace('9', '₉').Replace('+', '₊').Replace('-', '₋').Replace('=', '₌').Replace('(', '₍').Replace(')', '₎');
+        public static string ToSuperscript(this string s) => s.Replace('0', '⁰').Replace('1', '¹').Replace('2', '²').Replace('3', '³').Replace('4', '⁴').Replace('5', '⁵').Replace('6', '⁶').Replace('7', '⁷').Replace('8', '⁸').Replace('9', '⁹').Replace('+', '⁺').Replace('-', '⁻').Replace('=', '⁼').Replace('(', '⁽').Replace(')', '⁾');
+
         public static string TrimStart(this string target, string trimString, int times = 0)
         {
             double timesD = times > 0 ? times : double.PositiveInfinity;
@@ -64,70 +72,36 @@ namespace BenLib
             return result;
         }
 
-        public static bool ContainsAny(this string s, IEnumerable<char> values)
-        {
-            if (s == null || values == null) return false;
+        public static bool ContainsAny(this string s, IEnumerable<char> values) => ContainsAny(s, values.ToArray());
+        public static bool ContainsAny(this string s, params char[] values) => s.IndexOfAny(values) != -1;
 
-            foreach (char c in values)
-            {
-                if (s.Contains(c)) return true;
-            }
-
-            return false;
-        }
-
+        public static bool ContainsAny(this string s, params string[] values) => ContainsAny(s, (IEnumerable<string>)values);
         public static bool ContainsAny(this string s, IEnumerable<string> values)
         {
-            if (s == null || values == null) return false;
-
-            foreach (string value in values)
-            {
-                if (s.Contains(value)) return true;
-            }
-
+            if (s.IsNullOrEmpty() || values.IsNullOrEmpty()) return false;
+            foreach (string value in values) { if (s.Contains(value)) return true; }
             return false;
         }
 
         public static bool Contains(this string s, IEnumerable<char> values)
         {
-            if (s == null || values == null) return false;
-
-            foreach (char c in values)
-            {
-                if (!s.Contains(c)) return false;
-            }
-
+            if (s.IsNullOrEmpty() || values.IsNullOrEmpty()) return false;
+            foreach (char c in values) { if (!s.Contains(c)) return false; }
             return true;
         }
-
         public static bool Contains(this string s, IEnumerable<string> values)
         {
-            if (s == null || values == null) return false;
-
-            foreach (string value in values)
-            {
-                if (!s.Contains(value)) return false;
-            }
-
+            if (s.IsNullOrEmpty() || values.IsNullOrEmpty()) return false;
+            foreach (string value in values) { if (!s.Contains(value)) return false; }
             return true;
         }
-
         public static bool Contains(this string s, IEnumerable<string> values, StringComparison comparison)
         {
-            if (s == null || values == null) return false;
-
-            foreach (string value in values)
-            {
-                if (s.IndexOf(value, comparison) < 0) return false;
-            }
-
+            if (s.IsNullOrEmpty() || values.IsNullOrEmpty()) return false;
+            foreach (string value in values) { if (s.IndexOf(value, comparison) < 0) return false; }
             return true;
         }
 
-        public static bool Contains(this string s, string value, StringComparison comparison)
-        {
-            return s.IndexOf(value, comparison) >= 0;
-        }
 
         public static string Replace(this string s, IEnumerable<string> oldValues, string newValue)
         {
@@ -141,7 +115,6 @@ namespace BenLib
 
             return s;
         }
-
         public static string Replace(this string s, IEnumerable<char> oldChars, char newChar)
         {
             if (s == null) return null;
@@ -163,7 +136,7 @@ namespace BenLib
         public static List<int> AllIndexesOf(this string str, string value)
         {
             if (string.IsNullOrEmpty(value)) throw new ArgumentException("the string to find may not be empty", "value");
-            List<int> indexes = new List<int>();
+            var indexes = new List<int>();
             for (int index = 0; ; index += value.Length)
             {
                 index = str.IndexOf(value, index);
@@ -171,6 +144,368 @@ namespace BenLib
                 indexes.Add(index);
             }
         }
+
+        public static string Escape(this string input)
+        {
+            using (var writer = new StringWriter())
+            {
+                using (var provider = CodeDomProvider.CreateProvider("CSharp"))
+                {
+                    provider.GenerateCodeFromExpression(new CodePrimitiveExpression(input), writer, null);
+                    return writer.ToString();
+                }
+            }
+        }
+
+        public static string Substring(this string s, Interval<int> interval, bool allowExcess = false) => new string(s.SubCollection(interval, allowExcess).ToArray());
+
+        #region IsOut
+
+        #region Integer
+
+        #region Signed
+
+        public static TryResult IsInt(this string s, out int value)
+        {
+            try
+            {
+                value = int.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsLong(this string s, out long value)
+        {
+            try
+            {
+                value = long.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsShort(this string s, out short value)
+        {
+            try
+            {
+                value = short.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsSByte(this string s, out sbyte value)
+        {
+            try
+            {
+                value = sbyte.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #region Unsigned
+
+        public static TryResult IsUInt(this string s, out uint value)
+        {
+            try
+            {
+                value = uint.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsULong(this string s, out ulong value)
+        {
+            try
+            {
+                value = ulong.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsUShort(this string s, out ushort value)
+        {
+            try
+            {
+                value = ushort.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsByte(this string s, out byte value)
+        {
+            try
+            {
+                value = byte.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Decimal
+
+        public static TryResult IsDouble(this string s, out double value)
+        {
+            try
+            {
+                value = double.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsFloat(this string s, out float value)
+        {
+            try
+            {
+                value = float.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        public static TryResult IsDecimal(this string s, out decimal value)
+        {
+            try
+            {
+                value = decimal.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = 0;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region IsOutNullable
+
+        #region Integer
+
+        #region Signed
+
+        public static TryResult IsInt(this string s, out int? value)
+        {
+            try
+            {
+                value = int.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsLong(this string s, out long? value)
+        {
+            try
+            {
+                value = long.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsShort(this string s, out short? value)
+        {
+            try
+            {
+                value = short.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsSByte(this string s, out sbyte? value)
+        {
+            try
+            {
+                value = sbyte.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #region Unsigned
+
+        public static TryResult IsUInt(this string s, out uint? value)
+        {
+            try
+            {
+                value = uint.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsULong(this string s, out ulong? value)
+        {
+            try
+            {
+                value = ulong.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsUShort(this string s, out ushort? value)
+        {
+            try
+            {
+                value = ushort.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsByte(this string s, out byte? value)
+        {
+            try
+            {
+                value = byte.Parse(s);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Decimal
+
+        public static TryResult IsDouble(this string s, out double? value)
+        {
+            try
+            {
+                value = double.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsFloat(this string s, out float? value)
+        {
+            try
+            {
+                value = float.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        public static TryResult IsDecimal(this string s, out decimal? value)
+        {
+            try
+            {
+                value = decimal.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                value = null;
+                return ex;
+            }
+        }
+
+        #endregion
+
+        #endregion
 
         #region Is
 
@@ -187,9 +522,9 @@ namespace BenLib
             try
             {
                 int.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsLong(this string s)
@@ -197,9 +532,9 @@ namespace BenLib
             try
             {
                 long.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsShort(this string s)
@@ -207,9 +542,9 @@ namespace BenLib
             try
             {
                 short.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsSByte(this string s)
@@ -217,9 +552,9 @@ namespace BenLib
             try
             {
                 sbyte.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         #endregion
@@ -231,9 +566,9 @@ namespace BenLib
             try
             {
                 uint.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsULong(this string s)
@@ -241,9 +576,9 @@ namespace BenLib
             try
             {
                 ulong.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsUShort(this string s)
@@ -251,9 +586,9 @@ namespace BenLib
             try
             {
                 ushort.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsByte(this string s)
@@ -261,9 +596,9 @@ namespace BenLib
             try
             {
                 byte.Parse(s);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         #endregion
@@ -277,9 +612,9 @@ namespace BenLib
             try
             {
                 double.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsFloat(this string s)
@@ -287,9 +622,9 @@ namespace BenLib
             try
             {
                 float.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         public static TryResult IsDecimal(this string s)
@@ -297,9 +632,9 @@ namespace BenLib
             try
             {
                 decimal.Parse(s.Replace(',', '.'), Literal.DecimalSeparatorPoint);
-                return new TryResult(true);
+                return true;
             }
-            catch (Exception ex) { return new TryResult(false, ex); }
+            catch (Exception ex) { return ex; }
         }
 
         #endregion
@@ -312,7 +647,7 @@ namespace BenLib
         {
             if (unlimitedAtZero && maxDecimalPlaces == 0) return d.ToString();
             if (d == 0) return "0";
-            StringBuilder sb = new StringBuilder("0");
+            var sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
             maxDecimalPlaces.Times(i => sb.Append('#'));
             return d.ToString(sb.ToString());
@@ -322,7 +657,7 @@ namespace BenLib
         {
             if (unlimitedAtZero && maxDecimalPlaces == 0) return d.ToString();
             if (d == 0) return "0";
-            StringBuilder sb = new StringBuilder("0");
+            var sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
             maxDecimalPlaces.Times(i => sb.Append('#'));
             return d.ToString(sb.ToString());
@@ -332,7 +667,7 @@ namespace BenLib
         {
             if (unlimitedAtZero && maxDecimalPlaces == 0) return f.ToString();
             if (f == 0) return "0";
-            StringBuilder sb = new StringBuilder("0");
+            var sb = new StringBuilder("0");
             if (maxDecimalPlaces > 0) sb.Append('.');
             maxDecimalPlaces.Times(i => sb.Append('#'));
             return f.ToString(sb.ToString());
@@ -442,10 +777,8 @@ namespace BenLib
             if (s.Equals("Auto", StringComparison.OrdinalIgnoreCase)) return new GridLength(1, GridUnitType.Auto);
             if (s == "*") return new GridLength(1, GridUnitType.Star);
 
-            var value = s.TrimEnd('*').ToDouble();
-            if (value != null) return new GridLength((double)value, s.Contains('*') ? GridUnitType.Star : GridUnitType.Pixel);
-
-            return null;
+            double? value = s.TrimEnd('*').ToDouble();
+            return value != null ? (GridLength?)new GridLength((double)value, s.Contains('*') ? GridUnitType.Star : GridUnitType.Pixel) : null;
         }
 
         public static TEnum? ToEnum<TEnum>(this string s) where TEnum : struct

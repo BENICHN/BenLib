@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Globalization;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Linq;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BenLib
 {
@@ -18,34 +18,22 @@ namespace BenLib
         /// <summary>
         /// Retourne une chaîne contenant les valeurs d'un tableau d'octets.
         /// </summary>
-        public static string GetStBytes(this byte[] bytes)
-        {
-            return BitConverter.ToString(bytes).Replace("-", string.Empty);
-        }
+        public static string GetStBytes(this byte[] bytes) => BitConverter.ToString(bytes).Replace("-", string.Empty);
 
         /// <summary>
         /// Retourne une chaîne contenant les valeurs d'un tableau d'octets. Ceux-ci sont séparés par une autre chaîne.
         /// </summary>
-        public static string GetStBytes(this byte[] bytes, string separator)
-        {
-            return BitConverter.ToString(bytes).Replace("-", separator);
-        }
+        public static string GetStBytes(this byte[] bytes, string separator) => BitConverter.ToString(bytes).Replace("-", separator);
 
         /// <summary>
         /// Retourne une chaîne contenant les valeurs d'une plage d'octets d'un tableau d'octets.
         /// </summary>
-        public static string GetStBytes(this byte[] bytes, int startindex, int length)
-        {
-            return BitConverter.ToString(bytes, startindex, length).Replace("-", "");
-        }
+        public static string GetStBytes(this byte[] bytes, int startindex, int length) => BitConverter.ToString(bytes, startindex, length).Replace("-", "");
 
         /// <summary>
         /// Retourne une chaîne contenant les valeurs d'une plage d'octets d'un tableau d'octets. Ceux-ci sont séparés par une autre chaîne.
         /// </summary>
-        public static string GetStBytes(this byte[] bytes, int startindex, int length, string separator)
-        {
-            return BitConverter.ToString(bytes, startindex, length).Replace("-", separator);
-        }
+        public static string GetStBytes(this byte[] bytes, int startindex, int length, string separator) => BitConverter.ToString(bytes, startindex, length).Replace("-", separator);
 
         #endregion
 
@@ -124,7 +112,7 @@ namespace BenLib
         /// <summary>
         /// Encode tous les caractères de la chaîne en séquence d'octets.
         /// </summary>
-        public async static Task<byte[]> ToByteArrayAsync(this string s, Encoding encoding = null, CancellationToken cancellationToken = default)
+        public static async Task<byte[]> ToByteArrayAsync(this string s, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (s == null) throw new ArgumentNullException();
 
@@ -137,7 +125,7 @@ namespace BenLib
         /// <summary>
         /// Encode une plage de caractères de la chaîne en séquence d'octets.
         /// </summary>
-        public async static Task<byte[]> ToByteArrayAsync(this string s, int index, int count, Encoding encoding = null, CancellationToken cancellationToken = default)
+        public static async Task<byte[]> ToByteArrayAsync(this string s, int index, int count, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (s == null) throw new ArgumentNullException();
 
@@ -150,7 +138,7 @@ namespace BenLib
         /// <summary>
         /// Encode tous les caractères du tableau en séquence d'octets.
         /// </summary>
-        public async static Task<byte[]> ToByteArrayAsync(this char[] chars, Encoding encoding = null, CancellationToken cancellationToken = default)
+        public static async Task<byte[]> ToByteArrayAsync(this char[] chars, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (chars == null) throw new ArgumentNullException();
 
@@ -163,7 +151,7 @@ namespace BenLib
         /// <summary>
         /// Encode un jeu de caractères du tableau en séquence d'octets.
         /// </summary>
-        public async static Task<byte[]> ToByteArrayAsync(this char[] chars, int index, int count, Encoding encoding = null, CancellationToken cancellationToken = default)
+        public static async Task<byte[]> ToByteArrayAsync(this char[] chars, int index, int count, Encoding encoding = null, CancellationToken cancellationToken = default)
         {
             if (chars == null) throw new ArgumentNullException();
 

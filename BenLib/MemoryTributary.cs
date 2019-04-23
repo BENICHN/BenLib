@@ -13,14 +13,11 @@ namespace BenLib
     {
         #region Constructors
 
-        public MemoryTributary()
-        {
-            Position = 0;
-        }
+        public MemoryTributary() => Position = 0;
 
         public MemoryTributary(byte[] source)
         {
-            this.Write(source, 0, source.Length);
+            Write(source, 0, source.Length);
             Position = 0;
         }
 
@@ -37,29 +34,17 @@ namespace BenLib
 
         #region Status Properties
 
-        public override bool CanRead
-        {
-            get { return true; }
-        }
+        public override bool CanRead => true;
 
-        public override bool CanSeek
-        {
-            get { return true; }
-        }
+        public override bool CanSeek => true;
 
-        public override bool CanWrite
-        {
-            get { return true; }
-        }
+        public override bool CanWrite => true;
 
         #endregion
 
         #region Public Properties
 
-        public override long Length
-        {
-            get { return length; }
-        }
+        public override long Length => length;
 
         public override long Position { get; set; }
 
@@ -94,17 +79,11 @@ namespace BenLib
         /// <summary>
         /// The id of the block currently addressed by Position
         /// </summary>
-        protected long blockId
-        {
-            get { return Position / blockSize; }
-        }
+        protected long blockId => Position / blockSize;
         /// <summary>
         /// The offset of the byte currently addressed by Position, into the block that contains it
         /// </summary>
-        protected long blockOffset
-        {
-            get { return Position % blockSize; }
-        }
+        protected long blockOffset => Position % blockSize;
 
         #endregion
 
@@ -116,7 +95,7 @@ namespace BenLib
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            long lcount = (long)count;
+            long lcount = count;
 
             if (lcount < 0)
             {
@@ -133,13 +112,13 @@ namespace BenLib
             }
             if (offset < 0)
             {
-                throw new ArgumentOutOfRangeException("offset",offset,"Destination offset cannot be negative.");
+                throw new ArgumentOutOfRangeException("offset", offset, "Destination offset cannot be negative.");
             }
 
             int read = 0;
             long copysize = 0;
             do
-	        {
+            {
                 copysize = Math.Min(lcount, (blockSize - blockOffset));
                 Buffer.BlockCopy(block, (int)blockOffset, buffer, offset, (int)copysize);
                 lcount -= copysize;
@@ -148,10 +127,10 @@ namespace BenLib
                 read += (int)copysize;
                 Position += copysize;
 
-	        } while (lcount > 0);
+            } while (lcount > 0);
 
             return read;
-               
+
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -171,10 +150,7 @@ namespace BenLib
             return Position;
         }
 
-        public override void SetLength(long value)
-        {
-            length = value;
-        }
+        public override void SetLength(long value) => length = value;
 
         public override void Write(byte[] buffer, int offset, int count)
         {
@@ -188,7 +164,7 @@ namespace BenLib
 
                     EnsureCapacity(Position + copysize);
 
-                    Buffer.BlockCopy(buffer, (int)offset, block, (int)blockOffset, copysize);
+                    Buffer.BlockCopy(buffer, offset, block, (int)blockOffset, copysize);
                     count -= copysize;
                     offset += copysize;
 
@@ -232,11 +208,9 @@ namespace BenLib
         #region IDispose
 
         /* http://msdn.microsoft.com/en-us/library/fs2xkftw.aspx */
-        protected override void Dispose(bool disposing)
-        {
+        protected override void Dispose(bool disposing) =>
             /* We do not currently use unmanaged resources */
             base.Dispose(disposing);
-        }
 
         #endregion
 
@@ -270,7 +244,7 @@ namespace BenLib
             {
                 read = source.Read(buffer, 0, (int)Math.Min(4096, length));
                 length -= read;
-                this.Write(buffer, 0, read);
+                Write(buffer, 0, read);
 
             } while (length > 0);
         }
@@ -283,7 +257,7 @@ namespace BenLib
         {
             long initialpos = Position;
             Position = 0;
-            this.CopyTo(destination);
+            CopyTo(destination);
             Position = initialpos;
         }
 

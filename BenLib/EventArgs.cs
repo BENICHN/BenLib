@@ -22,10 +22,7 @@
 
     public class EventArgs<T1> : EventArgs
     {
-        public EventArgs(T1 param1)
-        {
-            Param1 = param1;
-        }
+        public EventArgs(T1 param1) => Param1 = param1;
 
         public T1 Param1 { get; set; }
     }

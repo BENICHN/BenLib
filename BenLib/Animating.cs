@@ -1,12 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Media.Animation;
-using System.Windows.Media;
-using System.Diagnostics;
 using System.Windows;
-using System.Collections;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace BenLib
 {
@@ -37,10 +37,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var diff = to - from;
+            double diff = to - from;
             //=============================================================================================
 
             if (name != null) animation.StateChanged += StateChanged;
@@ -143,11 +143,11 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
-            var diff = new double[count];
+            int count = from.Count;
+            double[] diff = new double[count];
 
             for (int i = 0; i < count; i++) diff[i] = to[i] - from[i];
             //=============================================================================================
@@ -185,7 +185,7 @@ namespace BenLib
                 double progress = easingFunction?.Ease(baseProgress) ?? baseProgress;
 
                 //=============================================================================================
-                var value = new double[count];
+                double[] value = new double[count];
                 for (int i = 0; i < count; i++)
                 {
                     double dif = diff[i];
@@ -193,7 +193,7 @@ namespace BenLib
                     if (isCumulative) val += dif * iterationsCount;
 
                     value[i] = val;
-                }                
+                }
 
                 setter(value);
                 //=============================================================================================
@@ -393,7 +393,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             var diff = to - from;
@@ -497,10 +497,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Vector[count];
 
             for (int i = 0; i < count; i++) diff[i] = to[i] - from[i];
@@ -743,14 +743,14 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var diff = to - from;
+            double diff = to - from;
             Vector pointDiff = default;
 
-            pathGeometry.GetPointAtFractionLength(0.0, out Point firstPoint, out Point firstTangent);
-            pathGeometry.GetPointAtFractionLength(1.0, out Point lastPoint, out Point lastTangent);
+            pathGeometry.GetPointAtFractionLength(0.0, out var firstPoint, out var firstTangent);
+            pathGeometry.GetPointAtFractionLength(1.0, out var lastPoint, out var lastTangent);
 
             if (isCumulative)
             {
@@ -794,7 +794,7 @@ namespace BenLib
                 //=============================================================================================
                 double value = from + diff * progress;
 
-                pathGeometry.GetPointAtFractionLength(value, out Point point, out Point tangent);
+                pathGeometry.GetPointAtFractionLength(value, out var point, out var tangent);
 
                 if (isCumulative) point += pointDiff * iterationsCount;
 
@@ -859,8 +859,8 @@ namespace BenLib
             //=============================================================================================
             Vector pointDiff = default;
 
-            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[0].Value, out Point firstPoint, out Point firstTangent);
-            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[resolvedKeyFrames.Length - 1].Value, out Point lastPoint, out Point lastTangent);
+            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[0].Value, out var firstPoint, out var firstTangent);
+            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[resolvedKeyFrames.Length - 1].Value, out var lastPoint, out var lastTangent);
 
             if (isCumulative)
             {
@@ -938,7 +938,7 @@ namespace BenLib
                 }
 
                 //=============================================================================================
-                pathGeometry.GetPointAtFractionLength(currentKeyFrameValue, out Point point, out Point tangent);
+                pathGeometry.GetPointAtFractionLength(currentKeyFrameValue, out var point, out var tangent);
 
                 if (isCumulative) point += pointDiff * iterationsCount;
 
@@ -1009,15 +1009,15 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var diff = to - from;
+            double diff = to - from;
             Vector pointDiff = default;
             double angleDiff = 0.0;
 
-            pathGeometry.GetPointAtFractionLength(0.0, out Point firstPoint, out Point firstTangent);
-            pathGeometry.GetPointAtFractionLength(1.0, out Point lastPoint, out Point lastTangent);
+            pathGeometry.GetPointAtFractionLength(0.0, out var firstPoint, out var firstTangent);
+            pathGeometry.GetPointAtFractionLength(1.0, out var lastPoint, out var lastTangent);
 
             if (isOffsetCumulative)
             {
@@ -1062,7 +1062,7 @@ namespace BenLib
                 //=============================================================================================
                 double value = from + diff * progress;
 
-                pathGeometry.GetPointAtFractionLength(value, out Point point, out Point tangent);
+                pathGeometry.GetPointAtFractionLength(value, out var point, out var tangent);
                 double angle = doesRotateWithTangent ? CalculateAngleFromTangentVector(tangent.X, tangent.Y) : 0.0;
 
                 var matrix = new Matrix();
@@ -1135,8 +1135,8 @@ namespace BenLib
             Vector pointDiff = default;
             double angleDiff = 0.0;
 
-            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[0].Value, out Point firstPoint, out Point firstTangent);
-            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[resolvedKeyFrames.Length - 1].Value, out Point lastPoint, out Point lastTangent);
+            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[0].Value, out var firstPoint, out var firstTangent);
+            pathGeometry.GetPointAtFractionLength(resolvedKeyFrames[resolvedKeyFrames.Length - 1].Value, out var lastPoint, out var lastTangent);
 
             if (isOffsetCumulative)
             {
@@ -1215,7 +1215,7 @@ namespace BenLib
                 }
 
                 //=============================================================================================
-                pathGeometry.GetPointAtFractionLength(currentKeyFrameValue, out Point point, out Point tangent);
+                pathGeometry.GetPointAtFractionLength(currentKeyFrameValue, out var point, out var tangent);
                 double angle = doesRotateWithTangent ? CalculateAngleFromTangentVector(tangent.X, tangent.Y) : 0.0;
 
                 var matrix = new Matrix();
@@ -1300,7 +1300,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             double fromX = from.X;
@@ -1419,10 +1419,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Rect[count];
 
             for (int i = 0; i < count; i++) diff[i] = new Rect(to[i].X - from[i].X, to[i].Y - from[i].Y, to[i].Width - from[i].Width, to[i].Height - from[i].Height);
@@ -1684,7 +1684,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             var diff = to - from;
@@ -1788,10 +1788,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Vector[count];
 
             for (int i = 0; i < count; i++) diff[i] = to[i] - from[i];
@@ -2038,7 +2038,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             var diff = to - from;
@@ -2142,10 +2142,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Color[count];
 
             for (int i = 0; i < count; i++) diff[i] = to[i] - from[i];
@@ -2392,7 +2392,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             double fromLeft = from.Left;
@@ -2511,10 +2511,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Thickness[count];
 
             for (int i = 0; i < count; i++) diff[i] = new Thickness(to[i].Left - from[i].Left, to[i].Top - from[i].Top, to[i].Right - from[i].Right, to[i].Bottom - from[i].Bottom);
@@ -2776,7 +2776,7 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
             double fromWidth = from.Width;
@@ -2889,10 +2889,10 @@ namespace BenLib
             else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
             else totalDuration = TimeSpan.MaxValue;
 
-            var totalMilliseconds = totalDuration.TotalMilliseconds;
+            double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             //=============================================================================================
-            var count = from.Count;
+            int count = from.Count;
             var diff = new Size[count];
 
             for (int i = 0; i < count; i++) diff[i] = new Size(to[i].Width - from[i].Width, to[i].Height - from[i].Height);
@@ -3155,11 +3155,11 @@ namespace BenLib
             TimeSpan LargestTimeSpanKeyTime()
             {
                 bool hasTimeSpanKeyTime = false;
-                TimeSpan largestTimeSpanKeyTime = TimeSpan.Zero;
+                var largestTimeSpanKeyTime = TimeSpan.Zero;
 
                 for (int i = 0; i < keyFramesArray.Length; i++)
                 {
-                    KeyTime keyTime = keyFramesArray[i].KeyTime;
+                    var keyTime = keyFramesArray[i].KeyTime;
 
                     if (keyTime.Type == KeyTimeType.TimeSpan)
                     {
@@ -3182,7 +3182,7 @@ namespace BenLib
             else durationTime = LargestTimeSpanKeyTime();
 
             int maxKeyFrameIndex = keyFramesArray.Length - 1;
-            ArrayList unspecifiedBlocks = new ArrayList();
+            var unspecifiedBlocks = new ArrayList();
             //bool hasPacedKeyTimes = false;
 
             //
@@ -3191,7 +3191,7 @@ namespace BenLib
 
             for (int i = 0; i < keyFramesArray.Length; i++)
             {
-                KeyTime keyTime = keyFramesArray[i].KeyTime;
+                var keyTime = keyFramesArray[i].KeyTime;
 
                 switch (keyTime.Type)
                 {
@@ -3212,11 +3212,11 @@ namespace BenLib
                         {
                             //if (keyTime.Type == KeyTimeType.Paced) hasPacedKeyTimes = true;
 
-                            KeyTimeBlock block = new KeyTimeBlock { BeginIndex = i };
+                            var block = new KeyTimeBlock { BeginIndex = i };
 
                             while (++i < maxKeyFrameIndex)
                             {
-                                KeyTimeType type = keyFramesArray[i].KeyTime.Type;
+                                var type = keyFramesArray[i].KeyTime.Type;
 
                                 if (type == KeyTimeType.Percent || type == KeyTimeType.TimeSpan) break;
                                 //else if (type == KeyTimeType.Paced) hasPacedKeyTimes = true;
@@ -3237,16 +3237,16 @@ namespace BenLib
 
             for (int i = 0; i < unspecifiedBlocks.Count; i++)
             {
-                KeyTimeBlock block = (KeyTimeBlock)unspecifiedBlocks[i];
+                var block = (KeyTimeBlock)unspecifiedBlocks[i];
 
-                TimeSpan blockBeginTime = TimeSpan.Zero;
+                var blockBeginTime = TimeSpan.Zero;
 
                 if (block.BeginIndex > 0) blockBeginTime = resolvedKeyFrames[block.BeginIndex - 1].KeyTime;
 
                 long segmentCount = block.EndIndex - block.BeginIndex + 1;
-                TimeSpan uniformTimeStep = TimeSpan.FromTicks((resolvedKeyFrames[block.EndIndex].KeyTime - blockBeginTime).Ticks / segmentCount);
+                var uniformTimeStep = TimeSpan.FromTicks((resolvedKeyFrames[block.EndIndex].KeyTime - blockBeginTime).Ticks / segmentCount);
 
-                TimeSpan resolvedTime = blockBeginTime + uniformTimeStep;
+                var resolvedTime = blockBeginTime + uniformTimeStep;
 
                 for (int j = block.BeginIndex; j < block.EndIndex; j++)
                 {

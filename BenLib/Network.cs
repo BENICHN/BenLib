@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,11 +25,11 @@ namespace BenLib
             catch (WebException ex) { return ex.Response ?? throw ex; }
         }
 
-        public static async Task<HttpWebResponse> GetHttpResponseAsync(this HttpWebRequest request) => (HttpWebResponse) await request.GetResponseAsync();
+        public static async Task<HttpWebResponse> GetHttpResponseAsync(this HttpWebRequest request) => (HttpWebResponse)await request.GetResponseAsync();
 
         public static async Task<HttpWebResponse> GetHttpResponseNoExceptionAsync(this HttpWebRequest request)
         {
-            try { return (HttpWebResponse) await request.GetResponseAsync(); }
+            try { return (HttpWebResponse)await request.GetResponseAsync(); }
             catch (WebException ex) { return ex.Response as HttpWebResponse ?? throw ex; }
         }
 

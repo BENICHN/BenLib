@@ -82,7 +82,7 @@ namespace BenLib.WPF
                 }
                 else // Unregister the selector
                 {
-                    if (attachedControls.TryGetValue(listBox, out ListBoxSelector selector))
+                    if (attachedControls.TryGetValue(listBox, out var selector))
                     {
                         attachedControls.Remove(listBox);
                         selector.UnRegister();
@@ -99,7 +99,7 @@ namespace BenLib.WPF
             queue.Enqueue(reference);
             while (queue.Count > 0)
             {
-                DependencyObject child = queue.Dequeue();
+                var child = queue.Dequeue();
                 if (child is T obj) return obj;
 
                 // Add the children to the queue to search through later.
@@ -182,7 +182,7 @@ namespace BenLib.WPF
                 listBox.SelectedItems.Clear();
             }
 
-            End:
+        End:
             clicked = false;
             clickpoint = originalclickpoint = start = end = default;
             clickargs = null;
@@ -201,12 +201,12 @@ namespace BenLib.WPF
             {
                 if (!selecting)
                 {
-                    Point mouse = e.GetPosition(scrollContent);
+                    var mouse = e.GetPosition(scrollContent);
                     if ((clickpoint.X >= 0) && (clickpoint.X < scrollContent.ActualWidth) && (clickpoint.Y >= 0) && (clickpoint.Y < scrollContent.ActualHeight))
                     {
                         if (Math.Sqrt((clickpoint.X - mouse.X).Pow(2) + (clickpoint.Y - mouse.Y).Pow(2)) >= 1)
                         {
-                            if (mouseCaptured = TryCaptureMouse(clickargs)) StartSelection(originalclickpoint);
+                            if (mouseCaptured = TryCaptureMouse()) StartSelection(originalclickpoint);
                             else clicked = false;
                         }
                     }
@@ -236,7 +236,7 @@ namespace BenLib.WPF
             }
         }
 
-        private bool TryCaptureMouse(MouseButtonEventArgs e)
+        private bool TryCaptureMouse()
         {
             // Check if there is anything under the mouse.
             if (scrollContent.InputHitTest(originalclickpoint) is UIElement element)
@@ -281,7 +281,7 @@ namespace BenLib.WPF
         private void UpdateSelection()
         {
             // Offset the start point based on the scroll offset.
-            Point start = autoScroller.TranslatePoint(this.start);
+            var start = autoScroller.TranslatePoint(this.start);
 
             // Draw the selecion rectangle.
             // Rect can't have a negative width/height...
@@ -289,13 +289,13 @@ namespace BenLib.WPF
             double y = Math.Min(start.Y, end.Y);
             double width = Math.Abs(end.X - start.X);
             double height = Math.Abs(end.Y - start.Y);
-            Rect area = new Rect(x, y, width, height);
+            var area = new Rect(x, y, width, height);
             selectionRect.SelectionArea = area;
 
             // Select the items.
             // Transform the points to be relative to the ListBox.
-            Point topLeft = scrollContent.TranslatePoint(area.TopLeft, listBox);
-            Point bottomRight = scrollContent.TranslatePoint(area.BottomRight, listBox);
+            var topLeft = scrollContent.TranslatePoint(area.TopLeft, listBox);
+            var bottomRight = scrollContent.TranslatePoint(area.BottomRight, listBox);
 
             // And select the items.
             selector.UpdateSelection(new Rect(topLeft, bottomRight));
@@ -514,8 +514,8 @@ namespace BenLib.WPF
                     if (itemsControl.ItemContainerGenerator.ContainerFromIndex(i) is FrameworkElement item)
                     {
                         // Get the bounds in the parent's co-ordinates.
-                        Point topLeft = item.TranslatePoint(new Point(0, 0), itemsControl);
-                        Rect itemBounds = new Rect(topLeft.X, topLeft.Y, item.ActualWidth, item.ActualHeight);
+                        var topLeft = item.TranslatePoint(new Point(0, 0), itemsControl);
+                        var itemBounds = new Rect(topLeft.X, topLeft.Y, item.ActualWidth, item.ActualHeight);
 
                         // Only change the selection if it intersects with the area
                         // (or intersected i.e. we changed the value last time).
@@ -538,9 +538,6 @@ namespace BenLib.WPF
         /// <summary>The event data for the AutoScroller.OffsetChanged event.</summary>
         private sealed class OffsetChangedEventArgs : EventArgs
         {
-            private readonly double horizontal;
-            private readonly double vertical;
-
             /// <summary>
             /// Initializes a new instance of the OffsetChangedEventArgs class.
             /// </summary>
@@ -548,15 +545,15 @@ namespace BenLib.WPF
             /// <param name="vertical">The change in vertical scroll.</param>
             internal OffsetChangedEventArgs(double horizontal, double vertical)
             {
-                this.horizontal = horizontal;
-                this.vertical = vertical;
+                HorizontalChange = horizontal;
+                VerticalChange = vertical;
             }
 
             /// <summary>Gets the change in horizontal scroll position.</summary>
-            public double HorizontalChange => this.horizontal;
+            public double HorizontalChange { get; }
 
             /// <summary>Gets the change in vertical scroll position.</summary>
-            public double VerticalChange => vertical;
+            public double VerticalChange { get; }
         }
 
         /// <summary>Draws a selection rectangle on an AdornerLayer.</summary>

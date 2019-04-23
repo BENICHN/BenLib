@@ -1,10 +1,9 @@
-﻿using System;
+﻿using BenLib;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Collections.Generic;
-using System.Linq;
-using BenLib;
 
 namespace BenLib.WPF
 {
@@ -23,22 +22,22 @@ namespace BenLib.WPF
         /// <summary>
         /// Contient les chaînes qu'il est interdit d'écrire.
         /// </summary>
-        public static IEnumerable<string> GetForbiddenStrings(TextBox textBox) => (IEnumerable<string>)textBox.GetValue(ForbiddenStringsProperty);
-        public static void SetForbiddenStrings(TextBox textBox, IEnumerable<string> value) => textBox.SetValue(ForbiddenStringsProperty, value);
+        public static ICollection<string> GetForbiddenStrings(TextBox textBox) => (ICollection<string>)textBox.GetValue(ForbiddenStringsProperty);
+        public static void SetForbiddenStrings(TextBox textBox, ICollection<string> value) => textBox.SetValue(ForbiddenStringsProperty, value);
 
-        public static readonly DependencyProperty ForbiddenStringsProperty = DependencyProperty.RegisterAttached("ForbiddenStrings", typeof(IEnumerable<string>), typeof(TypedTextBox), new UIPropertyMetadata(null, ForbiddenStringsChanged));
+        public static readonly DependencyProperty ForbiddenStringsProperty = DependencyProperty.RegisterAttached("ForbiddenStrings", typeof(ICollection<string>), typeof(TypedTextBox), new UIPropertyMetadata(null, ForbiddenStringsChanged));
 
-        private IEnumerable<string> ForbiddenStrings { get => (IEnumerable<string>)m_textBox.GetValue(ForbiddenStringsProperty); set => m_textBox.SetValue(ForbiddenStringsProperty, value); }
+        private ICollection<string> ForbiddenStrings { get => (ICollection<string>)m_textBox.GetValue(ForbiddenStringsProperty); set => m_textBox.SetValue(ForbiddenStringsProperty, value); }
 
         /// <summary>
         /// Contient les chaînes qu'il est interdit d'écrire.
         /// </summary>
-        public static IEnumerable<string> GetAllowedStrings(TextBox textBox) => (IEnumerable<string>)textBox.GetValue(AllowedStringsProperty);
-        public static void SetAllowedStrings(TextBox textBox, IEnumerable<string> value) => textBox.SetValue(AllowedStringsProperty, value);
+        public static ICollection<string> GetAllowedStrings(TextBox textBox) => (ICollection<string>)textBox.GetValue(AllowedStringsProperty);
+        public static void SetAllowedStrings(TextBox textBox, ICollection<string> value) => textBox.SetValue(AllowedStringsProperty, value);
 
-        public static readonly DependencyProperty AllowedStringsProperty = DependencyProperty.RegisterAttached("AllowedStrings", typeof(IEnumerable<string>), typeof(TypedTextBox));
+        public static readonly DependencyProperty AllowedStringsProperty = DependencyProperty.RegisterAttached("AllowedStrings", typeof(ICollection<string>), typeof(TypedTextBox));
 
-        private IEnumerable<string> AllowedStrings { get => (IEnumerable<string>)m_textBox.GetValue(AllowedStringsProperty); set => m_textBox.SetValue(AllowedStringsProperty, value); }
+        private ICollection<string> AllowedStrings { get => (ICollection<string>)m_textBox.GetValue(AllowedStringsProperty); set => m_textBox.SetValue(AllowedStringsProperty, value); }
 
         private static readonly Dictionary<TextBox, TypedTextBox> m_attachedControls = new Dictionary<TextBox, TypedTextBox>();
 
@@ -68,7 +67,7 @@ namespace BenLib.WPF
                 }
                 else if (GetForbiddenStrings(textBox).IsNullOrEmpty()) //Unregister
                 {
-                    if (m_attachedControls.TryGetValue(textBox, out TypedTextBox typedTextBox))
+                    if (m_attachedControls.TryGetValue(textBox, out var typedTextBox))
                     {
                         m_attachedControls.Remove(textBox);
                         typedTextBox.UnRegister();
@@ -81,14 +80,14 @@ namespace BenLib.WPF
         {
             if (d is TextBox textBox)
             {
-                if (!((IEnumerable<string>)e.NewValue).IsNullOrEmpty()) //Register
+                if (!((ICollection<string>)e.NewValue).IsNullOrEmpty()) //Register
                 {
                     if (!m_attachedControls.ContainsKey(textBox))
                         m_attachedControls.Add(textBox, new TypedTextBox(textBox));
                 }
                 else if (GetContentType(textBox) == ContentTypes.Text) //Unregister
                 {
-                    if (m_attachedControls.TryGetValue(textBox, out TypedTextBox typedTextBox))
+                    if (m_attachedControls.TryGetValue(textBox, out var typedTextBox))
                     {
                         m_attachedControls.Remove(textBox);
                         typedTextBox.UnRegister();
@@ -167,7 +166,7 @@ namespace BenLib.WPF
                     }
                 }
 
-                End:
+            End:
                 if (m_ante != m_textBox.Text)
                 {
                     m_ante = m_textBox.Text;
