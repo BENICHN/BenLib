@@ -18,6 +18,8 @@ namespace System.Collections.ObjectModel
     /// </summary>
     public class ObservableRangeCollection<T> : ObservableCollection<T>
     {
+        public bool ResetOnClear { get; set; } = true;
+
         #region Private Fields    
         [NonSerialized]
         private DeferredEventsCollection _deferredEvents;
@@ -211,7 +213,7 @@ namespace System.Collections.ObjectModel
 
             OnEssentialPropertiesChanged();
 
-            if (Count == 0)
+            if (ResetOnClear && Count == 0)
             {
                 OnCollectionReset();
             }
@@ -364,7 +366,7 @@ namespace System.Collections.ObjectModel
 
             OnEssentialPropertiesChanged();
 
-            if (Count == 0)
+            if (ResetOnClear && Count == 0)
             {
                 OnCollectionReset();
             }
@@ -603,15 +605,14 @@ namespace System.Collections.ObjectModel
         /// </summary>
         protected override void ClearItems()
         {
-            if (Count == 0)
-            {
-                return;
-            }
+            if (Count == 0) return;
 
             CheckReentrancy();
+            var args = ResetOnClear ? EventArgsCache.ResetCollectionChanged : Collections.CollectionRemove(Items.ToArray(), 0);
             base.ClearItems();
             OnEssentialPropertiesChanged();
-            OnCollectionReset();
+            if (ResetOnClear) OnCollectionReset();
+            else OnCollectionChanged(args);
         }
 
         /// <summary>
@@ -708,8 +709,7 @@ namespace System.Collections.ObjectModel
         /// <summary>
         /// Helper to raise CollectionChanged event with action == Reset to any listeners
         /// </summary>
-        private void OnCollectionReset() =>
-          OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
+        private void OnCollectionReset() => OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
 
         /// <summary>
         /// Helper to raise event for clustered action and clear cluster.

@@ -48,7 +48,7 @@ namespace BenLib.Framework
     {
         public static bool ShowException(this TryResult tryResult)
         {
-            Threading.ShowException(tryResult.Exception);
+            ThreadingFramework.ShowException(tryResult.Exception);
             return tryResult.Result;
         }
     }

@@ -545,68 +545,68 @@ namespace BenLib.Standard
         public static IEnumerable<int> Numbers(this Range<int> range, int start = int.MinValue, int end = int.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            int endValue = range.End.IsReal ? range.End.Value : end;
-            for (int i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            int endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (int i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<uint> Numbers(this Range<uint> range, uint start = uint.MinValue, uint end = uint.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            uint endValue = range.End.IsReal ? range.End.Value : end;
-            for (uint i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            uint endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (uint i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<long> Numbers(this Range<long> range, long start = long.MinValue, long end = long.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            long endValue = range.End.IsReal ? range.End.Value : end;
-            for (long i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            long endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (long i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<ulong> Numbers(this Range<ulong> range, ulong start = ulong.MinValue, ulong end = ulong.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            ulong endValue = range.End.IsReal ? range.End.Value : end;
-            for (ulong i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            ulong endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (ulong i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<short> Numbers(this Range<short> range, short start = short.MinValue, short end = short.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            short endValue = range.End.IsReal ? range.End.Value : end;
-            for (short i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            short endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (short i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<ushort> Numbers(this Range<ushort> range, ushort start = ushort.MinValue, ushort end = ushort.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            ushort endValue = range.End.IsReal ? range.End.Value : end;
-            for (ushort i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            ushort endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (ushort i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<byte> Numbers(this Range<byte> range, byte start = byte.MinValue, byte end = byte.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            byte endValue = range.End.IsReal ? range.End.Value : end;
-            for (byte i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            byte endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (byte i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<sbyte> Numbers(this Range<sbyte> range, sbyte start = sbyte.MinValue, sbyte end = sbyte.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            sbyte endValue = range.End.IsReal ? range.End.Value : end;
-            for (sbyte i = range.Start.IsReal ? range.Start.Value : start; i <= endValue; i++) yield return i;
+            sbyte endValue = range.End.IsReal ? Min(end, range.End.Value) : end;
+            for (sbyte i = range.Start.IsReal ? Max(start, range.Start.Value) : start; i <= endValue; i++) yield return i;
         }
         public static IEnumerable<float> Numbers(this Range<float> range, float step, float start = float.MinValue, float end = float.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            float endValue = range.End.IsReal ? range.End.Value - range.End.Level < 0 ? step : 0 : end;
-            for (float i = range.Start.IsReal ? range.Start.Value + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            float endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
+            for (float i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
         }
         public static IEnumerable<double> Numbers(this Range<double> range, double step, double start = double.MinValue, double end = double.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            double endValue = range.End.IsReal ? range.End.Value - range.End.Level < 0 ? step : 0 : end;
-            for (double i = range.Start.IsReal ? range.Start.Value + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            double endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
+            for (double i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
         }
         public static IEnumerable<decimal> Numbers(this Range<decimal> range, decimal step, decimal start = decimal.MinValue, decimal end = decimal.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            decimal endValue = range.End.IsReal ? range.End.Value - range.End.Level < 0 ? step : 0 : end;
-            for (decimal i = range.Start.IsReal ? range.Start.Value + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            decimal endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
+            for (decimal i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
         }
 
         public static IEnumerable<IEnumerable<int>> RangesNumbers(this Interval<int> interval, int start = int.MinValue, int end = int.MaxValue) => interval.Ranges.Select(r => r.Numbers(start, end));

@@ -62,7 +62,7 @@ namespace BenLib.Standard
 
         public override string ToString() => IsNull ? "Null" : string.Join(" → ", m_indexes);
 
-        public static TreeIndex operator +(TreeIndex start, TreeIndex end) => start.IsNull ? default : new TreeIndex(start.m_indexes.MergeArray(end.m_indexes));
+        public static TreeIndex operator +(TreeIndex start, TreeIndex end) => start.IsNull || end.IsNull ? default : new TreeIndex(start.m_indexes.MergeArray(end.m_indexes));
         public static TreeIndex operator +(TreeIndex indexes, int value) => indexes.IsNull ? default : new TreeIndex(indexes.m_indexes.SubArray(0, indexes.Depth).Append(indexes[indexes.Depth] + value).ToArray());
         public static TreeIndex operator -(TreeIndex indexes, int value) => indexes.IsNull ? default : new TreeIndex(indexes.m_indexes.SubArray(0, indexes.Depth).Append(indexes[indexes.Depth] - value).ToArray());
         public static TreeIndex operator *(TreeIndex start, TreeIndex end)
@@ -94,7 +94,6 @@ namespace BenLib.Standard
         public static implicit operator TreeIndex(int index) => new TreeIndex(new[] { index });
     }
 
-    //public interface IRangeTreeNode<T> : ITreeNode<T> { new IRangeTree<T> Children { get; } }
     public interface ITreeNode<T> { ITree<T> Children { get; } }
 
     public readonly struct EnumerableTreeNode<T>
@@ -131,47 +130,29 @@ namespace BenLib.Standard
         IList<T> Nodes { get; }
     }
 
-    /*public interface IRangeTree<T> : ITree<T>
-    {
-        void AddRange(IEnumerable<T> collection);
-        void InsertRange(TreeIndex index, IEnumerable<T> collection);
-        void RemoveRange(Range<TreeIndex> range);
-    }*/
+    public interface INotifyTreeChanged { event NotifyTreeChangedEventHandler TreeChanged; }
 
-    public interface INotifyTreeChanged<T> { event NotifyTreeChangedEventHandler<T> TreeChanged; }
-
-    public class NotifyTreeChangedEventArgs<T> : EventArgs
+    public class NotifyTreeChangedEventArgs : EventArgs
     {
+        public NotifyTreeChangedEventArgs(NotifyCollectionChangedAction action, TreeIndex oldStartingIndex, IList oldItems, TreeIndex newStartingIndex, IList newItems)
+        {
+            Action = action;
+            OldStartingIndex = oldStartingIndex;
+            OldItems = oldItems;
+            NewStartingIndex = newStartingIndex;
+            NewItems = newItems;
+        }
+
         public NotifyCollectionChangedAction Action { get; }
 
         public TreeIndex OldStartingIndex { get; }
-        public IList<T> OldItems { get; }
+        public IList OldItems { get; }
 
         public TreeIndex NewStartingIndex { get; }
-        public IList<T> NewItems { get; }
+        public IList NewItems { get; }
     }
 
-    public delegate void NotifyTreeChangedEventHandler<T>(object sender, NotifyTreeChangedEventArgs<T> e);
-
-    /*public class RangeTree<T> : Tree<T>//, IRangeTree<T>
-    {
-        protected virtual void InsertItemsRange(int index, IEnumerable<T> collection) => Nodes.InsertRange(index, collection);//collection.ForEach((i, item) => InsertItem(index + i, item));
-        protected virtual void RemoveItemsRange(int index, int count) => Nodes.RemoveRange(index, count); //{ for (int i = index; i < count; i++) RemoveItem(i); }
-
-        public void AddRange(IEnumerable<T> collection) => InsertItemsRange(Nodes.Count, collection);
-        public void InsertRange(TreeIndex index, IEnumerable<T> collection)
-        {
-            if (index.Depth == 0) InsertItemsRange(index[0], collection);
-            else if (Nodes[index[0]] is ITreeNode<T> treeNode)
-            {
-                if (treeNode.Children is Tree<T> tree) tree.InsertRange(index << 1, collection);
-                else foreach (var node in treeNode.Children);
-            }
-            else throw new IndexOutOfRangeException("L'index spécifié pointe vers une profondeur qui n'existe pas dans cet arbre.");
-        }
-
-        public void RemoveRange(Range<TreeIndex> range) => throw new NotImplementedException();
-    }*/
+    public delegate void NotifyTreeChangedEventHandler(object sender, NotifyTreeChangedEventArgs e);
 
     public class ArrayTree<T> : ReadOnlyTreeBase<T>
     {
@@ -184,25 +165,6 @@ namespace BenLib.Standard
         protected override IList<T> Items => Nodes;
     }
 
-    public class ObservableTree<T> : TreeBase<T>, INotifyTreeChanged<T>, INotifyCollectionChanged
-    {
-        public ObservableTree(ObservableRangeCollection<T> nodes)
-        {
-            Nodes = nodes;
-        }
-
-        public ObservableTree() : this(new ObservableRangeCollection<T>()) { }
-        public ObservableTree(List<T> items) : this(new ObservableRangeCollection<T>(items)) { }
-        public ObservableTree(IEnumerable<T> items) : this(new ObservableRangeCollection<T>(items)) { }
-        public ObservableTree(params T[] items) : this(new ObservableRangeCollection<T>(items)) { }
-
-        public ObservableRangeCollection<T> Nodes { get; }
-        protected override IList<T> Items => Nodes;
-
-        public virtual event NotifyTreeChangedEventHandler<T> TreeChanged;
-        public virtual event NotifyCollectionChangedEventHandler CollectionChanged;
-    }
-
     public class Tree<T> : TreeBase<T>
     {
         public List<T> Nodes { get; }
@@ -213,6 +175,58 @@ namespace BenLib.Standard
         public Tree(int capacity) : this(new List<T>(capacity)) { }
         public Tree(IEnumerable<T> items) : this(new List<T>(items)) { }
         public Tree(params T[] items) : this(new List<T>(items)) { }
+    }
+
+    public class ObservableRangeTree<T> : ObservableTreeBase<T>
+    {
+        public ObservableRangeCollection<T> Nodes => (ObservableRangeCollection<T>)ObservableItems;
+        protected override IList<T> Items => Nodes;
+
+        public ObservableRangeTree(ObservableRangeCollection<T> nodes) : base(nodes) { foreach (var treeNode in nodes.OfType<ITreeNode<T>>()) if (treeNode.Children is INotifyTreeChanged observableTree) observableTree.TreeChanged += OnNodesTreeChanged; }
+
+        public ObservableRangeTree() : this(new ObservableRangeCollection<T>()) { }
+        public ObservableRangeTree(List<T> items) : this(new ObservableRangeCollection<T>(items)) { }
+        public ObservableRangeTree(IEnumerable<T> items) : this(new ObservableRangeCollection<T>(items)) { }
+        public ObservableRangeTree(params T[] items) : this(new ObservableRangeCollection<T>(items)) { }
+    }
+
+    public class ObservableTree<T> : ObservableTreeBase<T>
+    {
+        public ObservableCollection<T> Nodes => (ObservableCollection<T>)ObservableItems;
+        protected override IList<T> Items => Nodes;
+
+        public ObservableTree(ObservableCollection<T> nodes) : base(nodes) { foreach (var treeNode in nodes.OfType<ITreeNode<T>>()) if (treeNode.Children is INotifyTreeChanged observableTree) observableTree.TreeChanged += OnNodesTreeChanged; }
+
+        public ObservableTree() : this(new ObservableCollection<T>()) { }
+        public ObservableTree(List<T> items) : this(new ObservableCollection<T>(items)) { }
+        public ObservableTree(IEnumerable<T> items) : this(new ObservableCollection<T>(items)) { }
+        public ObservableTree(params T[] items) : this(new ObservableCollection<T>(items)) { }
+    }
+
+    public abstract class ObservableTreeBase<T> : TreeBase<T>, INotifyTreeChanged, INotifyCollectionChanged
+    {
+        protected INotifyCollectionChanged ObservableItems { get; }
+
+        public virtual event NotifyTreeChangedEventHandler TreeChanged;
+        public virtual event NotifyCollectionChangedEventHandler CollectionChanged { add => ObservableItems.CollectionChanged += value; remove => ObservableItems.CollectionChanged -= value; }
+        protected ObservableTreeBase(INotifyCollectionChanged observableItems)
+        {
+            ObservableItems = observableItems;
+            CollectionChanged += (sender, e) =>
+            {
+                OnTreeChanged(new NotifyTreeChangedEventArgs(e.Action, e.OldStartingIndex, e.OldItems, e.NewStartingIndex, e.NewItems));
+                if (e.OldItems != null) foreach (var treeNode in e.OldItems.OfType<ITreeNode<T>>()) if (treeNode.Children is INotifyTreeChanged observableTree) observableTree.TreeChanged -= OnNodesTreeChanged;
+                if (e.NewItems != null) foreach (var treeNode in e.NewItems.OfType<ITreeNode<T>>()) if (treeNode.Children is INotifyTreeChanged observableTree) observableTree.TreeChanged += OnNodesTreeChanged;
+            };
+        }
+
+        protected void OnNodesTreeChanged(object sender, NotifyTreeChangedEventArgs e)
+        {
+            TreeIndex index = Items.IndexOf(node => node is ITreeNode<T> treeNode ? treeNode.Children.Equals(sender) : false);
+            TreeChanged?.Invoke(this, new NotifyTreeChangedEventArgs(e.Action, index + e.OldStartingIndex, e.OldItems, index + e.NewStartingIndex, e.NewItems));
+        }
+
+        protected virtual void OnTreeChanged(NotifyTreeChangedEventArgs e) => TreeChanged?.Invoke(this, e);
     }
 
     public abstract class TreeBase<T> : ReadOnlyTreeBase<T>, ITree<T>
@@ -278,7 +292,15 @@ namespace BenLib.Standard
         public virtual bool IsReadOnly => true;
 
         public bool Contains(T item) => Items.Any(node => node.Equals(item) || node is ITreeNode<T> treeNode && treeNode.Children.Contains(item));
-        public TreeIndex IndexOf(T item) => Items.Select((node, i) => node is ITreeNode<T> treeNode ? i + treeNode.Children.IndexOf(item) : node.Equals(item) ? i : default).FirstOrDefault(index => !index.IsNull);
+        public TreeIndex IndexOf(T item) => Items.Select((node, i) =>
+        {
+            if (node is ITreeNode<T> treeNode)
+            {
+                var index = i + treeNode.Children.IndexOf(item);
+                if (!index.IsNull) return index;
+            }
+            return node.Equals(item) ? i : -1;
+        }).FirstOrDefault(index => !index.IsNull);
 
         void ITree<T>.Add(T item) => throw new InvalidOperationException();
         void ITree<T>.Clear() => throw new InvalidOperationException();
@@ -309,6 +331,12 @@ namespace BenLib.Standard
             }
         }
 
+        public static IEnumerable<EnumerableTreeNode<T>> SubTree<T>(this ITree<T> tree, T start, T end, bool allowExcess)
+        {
+            var index1 = tree.IndexOf(start);
+            var index2 = tree.IndexOf(end);
+            return tree.SubTree((Min(index1, index2), Max(index1, index2)), allowExcess);
+        }
         public static IEnumerable<EnumerableTreeNode<T>> SubTree<T>(this IEnumerable<EnumerableTreeNode<T>> tree, Range<TreeIndex> range, bool allowExcess)
         {
             var start = Ordinal<int>.Max(Ordinal<int>.Zero, range.Start.Convert(ti => ti.IsNull ? throw new ArgumentNullException("range.Start") : ti[0]));

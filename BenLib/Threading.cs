@@ -1,12 +1,34 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using static BenLib.Framework.TimingFramework;
 
 namespace BenLib.Framework
 {
-    public static class Threading
+    public static class ThreadingFramework
     {
         public static MessageBoxResult ShowException(Exception ex) => ex == null ? MessageBoxResult.None : MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
+    public static partial class Extensions
+    {
+        public static async Task WithFramesTimeout(this Task task, int framesCountTimeout)
+        {
+            if (task != await Task.WhenAny(task, FramesDelay(framesCountTimeout))) throw new TimeoutException();
+        }
+
+        public static async Task<TResult> WithFramesTimeout<TResult>(this Task<TResult> task, int framesCountTimeout)
+        {
+            if (task == await Task.WhenAny(task, FramesDelay<TResult>(framesCountTimeout))) return task.Result;
+            else throw new TimeoutException();
+        }
+
+        public static Task AtLeast(this Task task, int framesCountDelay) => Task.WhenAll(task, FramesDelay(framesCountDelay));
+        public static async Task<TResult> AtLeast<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAll(task, FramesDelay<TResult>(millisecondsDelay)))[0];
+
+        public static Task AtMost(this Task task, int framesCountDelay) => Task.WhenAny(task, FramesDelay(framesCountDelay));
+        public static async Task<TResult> AtMost<TResult>(this Task<TResult> task, int millisecondsDelay) => (await Task.WhenAny(task, FramesDelay<TResult>(millisecondsDelay))).Result;
     }
 
     public class RelayCommand<T> : ICommand

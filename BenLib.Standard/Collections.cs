@@ -378,6 +378,17 @@ namespace BenLib.Standard
 
         public static int IndexOf<T>(this T[] array, T value) => Array.IndexOf(array, value);
 
+        public static int IndexOf<T>(this IEnumerable<T> collection, Func<T, bool> predicate)
+        {
+            int i = 0;
+            foreach (var item in collection)
+            {
+                if (predicate(item)) return i;
+                i++;
+            }
+            return -1;
+        }
+
         public static int IndexOf(this byte[] haystack, byte[] needle)
         {
             int[] lookup = new int[256];

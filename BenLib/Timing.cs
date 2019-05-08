@@ -4,7 +4,7 @@ using System.Windows.Media;
 
 namespace BenLib.Framework
 {
-    public static class Timing
+    public static class TimingFramework
     {
         public static Task FramesDelay(int framesCount)
         {
@@ -25,6 +25,12 @@ namespace BenLib.Framework
             CompositionTarget.Rendering += SpendEvent;
 
             return tcs.Task;
+        }
+
+        public static async Task<T> FramesDelay<T>(int millisecondsDelay)
+        {
+            await FramesDelay(millisecondsDelay);
+            return default;
         }
     }
 

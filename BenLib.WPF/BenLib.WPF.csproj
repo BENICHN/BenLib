@@ -87,6 +87,7 @@
     </Compile>
     <Compile Include="Extensions\TypedTextBox.cs" />
     <Compile Include="Extensions\WPFExtensions.cs" />
+    <Compile Include="Tree.cs" />
     <Compile Include="WpfObservableRangeCollection.cs" />
     <Page Include="InputBox.xaml">
       <SubType>Designer</SubType>

@@ -7,7 +7,7 @@ using static System.Math;
 
 namespace BenLib.Framework
 {
-    public static class Num
+    public static class NumFramework
     {
         public static Color Interpolate(Color start, Color end, double progress) => start * (float)(1 - progress) + end * (float)progress;
         public static IEnumerable<Color> Interpolate(IList<Color> start, IList<Color> end, double progress)
