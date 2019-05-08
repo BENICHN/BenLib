@@ -8,7 +8,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace BenLib
+namespace BenLib.Framework
 {
     public static class Imaging
     {

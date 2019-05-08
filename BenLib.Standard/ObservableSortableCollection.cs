@@ -31,7 +31,10 @@ namespace System.Collections.ObjectModel
             get
             {
                 if (_Comparer == null && (typeof(T) is IComparable<T> || typeof(T) is IComparer<T>))
+                {
                     _Comparer = Comparer<T>.Default;
+                }
+
                 return _Comparer;
             }
             set
@@ -64,7 +67,11 @@ namespace System.Collections.ObjectModel
         protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
             base.OnCollectionChanged(e);
-            if (reordering) return;
+            if (reordering)
+            {
+                return;
+            }
+
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Remove:
@@ -88,12 +95,14 @@ namespace System.Collections.ObjectModel
              .Where(o => o.OldIndex != o.NewIndex);
 
             using (var enumerator = map.GetEnumerator())
+            {
                 if (enumerator.MoveNext())
                 {
                     reordering = true;
                     Move(enumerator.Current.OldIndex, enumerator.Current.NewIndex);
                     reordering = false;
                 }
+            }
         }
     }
 }

@@ -3,12 +3,8 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BenLib
+namespace BenLib.Standard
 {
-    public static class Network
-    {
-    }
-
     public static partial class Extensions
     {
         public static HttpWebResponse GetHttpResponse(this HttpWebRequest request) => (HttpWebResponse)request.GetResponse();

@@ -1,6 +1,6 @@
-﻿using BenLib;
+﻿using BenLib.Standard;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -39,7 +39,7 @@ namespace BenLib.WPF
 
         private ICollection<string> AllowedStrings { get => (ICollection<string>)m_textBox.GetValue(AllowedStringsProperty); set => m_textBox.SetValue(AllowedStringsProperty, value); }
 
-        private static readonly Dictionary<TextBox, TypedTextBox> m_attachedControls = new Dictionary<TextBox, TypedTextBox>();
+        private static readonly ConditionalWeakTable<TextBox, TypedTextBox> m_attachedControls = new ConditionalWeakTable<TextBox, TypedTextBox>();
 
         private readonly TextBox m_textBox;
 
@@ -56,21 +56,21 @@ namespace BenLib.WPF
             else m_textBox.Loaded += TextBox_Loaded;
         }
 
+        ~TypedTextBox() => UnRegister();
+
         private static void ContentTypeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TextBox textBox)
             {
                 if ((ContentTypes)e.NewValue != ContentTypes.Text) //Register
                 {
-                    if (!m_attachedControls.ContainsKey(textBox))
-                        m_attachedControls.Add(textBox, new TypedTextBox(textBox));
+                    if (!m_attachedControls.TryGetValue(textBox, out var _)) m_attachedControls.Add(textBox, new TypedTextBox(textBox));
                 }
                 else if (GetForbiddenStrings(textBox).IsNullOrEmpty()) //Unregister
                 {
                     if (m_attachedControls.TryGetValue(textBox, out var typedTextBox))
                     {
                         m_attachedControls.Remove(textBox);
-                        typedTextBox.UnRegister();
                     }
                 }
             }
@@ -82,15 +82,13 @@ namespace BenLib.WPF
             {
                 if (!((ICollection<string>)e.NewValue).IsNullOrEmpty()) //Register
                 {
-                    if (!m_attachedControls.ContainsKey(textBox))
-                        m_attachedControls.Add(textBox, new TypedTextBox(textBox));
+                    if (!m_attachedControls.TryGetValue(textBox, out var _)) m_attachedControls.Add(textBox, new TypedTextBox(textBox));
                 }
                 else if (GetContentType(textBox) == ContentTypes.Text) //Unregister
                 {
                     if (m_attachedControls.TryGetValue(textBox, out var typedTextBox))
                     {
                         m_attachedControls.Remove(textBox);
-                        typedTextBox.UnRegister();
                     }
                 }
             }

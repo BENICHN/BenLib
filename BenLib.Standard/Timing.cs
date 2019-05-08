@@ -1,57 +1,19 @@
 ﻿using System;
+using System.Globalization;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
 
-namespace BenLib.Framework
+namespace BenLib.Standard
 {
     public static class Timing
     {
-        public static Task FramesDelay(int framesCount)
-        {
-            int ellapsedFrames = 0;
-            var tcs = new TaskCompletionSource<object>();
-
-            void SpendEvent(object sender, EventArgs e)
-            {
-                ellapsedFrames++;
-
-                if (ellapsedFrames >= framesCount)
-                {
-                    CompositionTarget.Rendering -= SpendEvent;
-                    tcs.TrySetResult(null);
-                }
-            }
-
-            CompositionTarget.Rendering += SpendEvent;
-
-            return tcs.Task;
-        }
+        public static Task Wait(CancellationToken cancellationToken = default) => Task.Run(() => { while (true) { } }, cancellationToken);
     }
 
-    public class FrameStopwatch
+    public static partial class Extensions
     {
-        public FrameStopwatch(int fps = 60, long elapsedFrames = 0)
-        {
-            FPS = fps;
-            ElapsedFrames = elapsedFrames;
-        }
-
-        ~FrameStopwatch() => CompositionTarget.Rendering -= SpendEvent;
-
-        public int FPS { get; set; }
-        public long ElapsedFrames { get; private set; }
-
-        public TimeSpan Elapsed => TimeSpan.FromMilliseconds(ElapsedMilliseconds);
-        public double ElapsedMilliseconds => 1000 * ElapsedFrames / FPS;
-
-        public void Spend(long framesCount = 1) => ElapsedFrames += framesCount;
-
-        public void Start() => CompositionTarget.Rendering += SpendEvent;
-        public void Stop() => CompositionTarget.Rendering -= SpendEvent;
-
-        public void Reset() => ElapsedFrames = 0;
-
-        private void SpendEvent(object sender, EventArgs e) => Spend();
+        public static TimeSpan Multiply(this TimeSpan timeSpan, double factor) => TimeSpan.FromTicks((long)(timeSpan.Ticks * factor));
     }
 
     /// <summary>

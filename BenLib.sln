@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.WPF", "BenLib.WPF\Be
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.Test", "BenLib.Test\BenLib.Test.csproj", "{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.Standard", "BenLib.Standard\BenLib.Standard.csproj", "{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

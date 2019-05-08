@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -15,7 +16,7 @@ namespace BenLib.WPF
 
         public bool Enabled { get => (bool)m_slider.GetValue(EnabledProperty); set => m_slider.SetValue(EnabledProperty, value); }
 
-        private static readonly Dictionary<Slider, GrabAnywhere> m_attachedControls = new Dictionary<Slider, GrabAnywhere>();
+        private static readonly ConditionalWeakTable<Slider, GrabAnywhere> m_attachedControls = new ConditionalWeakTable<Slider, GrabAnywhere>();
 
         private readonly Slider m_slider;
 
@@ -25,6 +26,8 @@ namespace BenLib.WPF
             if (m_slider.IsLoaded) Register();
             else m_slider.Loaded += Slider_Loaded;
         }
+
+        ~GrabAnywhere() => UnRegister();
 
         private void Slider_Loaded(object sender, RoutedEventArgs e)
         {
@@ -55,14 +58,13 @@ namespace BenLib.WPF
             {
                 if ((bool)e.NewValue) //Register
                 {
-                    if (!m_attachedControls.ContainsKey(slider)) m_attachedControls.Add(slider, new GrabAnywhere(slider));
+                    if (!m_attachedControls.TryGetValue(slider, out var _)) m_attachedControls.Add(slider, new GrabAnywhere(slider));
                 }
                 else //Unregister
                 {
                     if (m_attachedControls.TryGetValue(slider, out var extensions))
                     {
                         m_attachedControls.Remove(slider);
-                        extensions.UnRegister();
                     }
                 }
             }

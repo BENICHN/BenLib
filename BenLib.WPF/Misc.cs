@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BenLib.Standard;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -6,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using static BenLib.Standard.Num;
 
 namespace BenLib.WPF
 {
@@ -28,11 +30,11 @@ namespace BenLib.WPF
         public static CommandBindingCollection GetCommandBindings(UIElement element) => (CommandBindingCollection)element.GetValue(CommandBindingsProperty);
         public static void SetCommandBindings(UIElement element, CommandBindingCollection value) => element.SetValue(CommandBindingsProperty, value);*/
 
-        public static Color GetRandomColor() => Color.FromRgb((byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+        public static Color GetRandomColor() => Color.FromRgb((byte)RandomInt(255), (byte)RandomInt(255), (byte)RandomInt(255));
 
-        public static Color GetRandomColor(byte alpha) => Color.FromArgb(alpha, (byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+        public static Color GetRandomColor(byte alpha) => Color.FromArgb(alpha, (byte)RandomInt(255), (byte)RandomInt(255), (byte)RandomInt(255));
 
-        public static Color GetRandomColor(byte minAlpha, byte maxAlpha) => Color.FromArgb((byte)Num.RandomInt(minAlpha, maxAlpha), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255), (byte)Num.RandomInt(255));
+        public static Color GetRandomColor(byte minAlpha, byte maxAlpha) => Color.FromArgb((byte)RandomInt(minAlpha, maxAlpha), (byte)RandomInt(255), (byte)RandomInt(255), (byte)RandomInt(255));
 
         public static Ellipse CreateCircle(Point center, double radius, Brush fill = null, Brush stroke = null, double strokeThickness = 0)
         {

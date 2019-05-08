@@ -1,8 +1,7 @@
-﻿using System;
-using System.Windows;
-using static BenLib.Literal;
+﻿using System.Windows;
+using static BenLib.Standard.Literal;
 
-namespace BenLib
+namespace BenLib.Framework
 {
     /// <summary>
     /// Représente une équation cartésienne de droite

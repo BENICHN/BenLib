@@ -1,6 +1,6 @@
-﻿using System;
+﻿using BenLib.Standard;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +17,7 @@ namespace BenLib.WPF
 
         private string m_tmp;
         private bool m_isTextChecking;
+        private string m_checkedText;
 
         public ContentTypes ContentType { get => TypedTextBox.GetContentType(tb); set => TypedTextBox.SetContentType(tb, value); }
         public ICollection<string> ForbiddenStrings { get => TypedTextBox.GetForbiddenStrings(tb); set => TypedTextBox.SetForbiddenStrings(tb, value); }
@@ -38,22 +39,51 @@ namespace BenLib.WPF
         }
         public static readonly DependencyProperty SForegroundProperty = DependencyProperty.Register("SForeground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.Black, OnSForegroundChanged));
 
+        //public Point InRanderTransformOrigin
+        //{
+        //    get => (Point)GetValue(InRanderTransformOriginProperty);
+        //    set => SetValue(InRanderTransformOriginProperty, value);
+        //}
+        //public static readonly DependencyProperty InRanderTransformOriginProperty = DependencyProperty.Register("InRanderTransformOrigin", typeof(Point), typeof(SwitchableTextBox), new PropertyMetadata(OnTranformOriginChanged));
+
+        //public Transform InRanderTransform
+        //{
+        //    get => (Transform)GetValue(InRanderTransformProperty);
+        //    set => SetValue(InRanderTransformProperty, value);
+        //}
+        //public static readonly DependencyProperty InRanderTransformProperty = DependencyProperty.Register("InRanderTransform", typeof(Transform), typeof(SwitchableTextBox), new PropertyMetadata(OnTransformChanged));
+
+        //private static void OnTranformOriginChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox && e.NewValue is Point origin) switchableTextBox.grid.RenderTransformOrigin = origin; }
+        //private static void OnTransformChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox && e.NewValue is Transform transform) switchableTextBox.grid.RenderTransform = transform; }
         private static void OnSBackgroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Background = (Brush)e.NewValue; }
         private static void OnSForegroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Foreground = switchableTextBox.lb.Foreground = (Brush)e.NewValue; }
 
         public string Text
         {
             get => (string)GetValue(TextProperty);
-            set => tb.Text = value;
+            set => SetValue(TextProperty, value);
         }
-        public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox));
+        public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox), new PropertyMetadata(OnTextChanged));
 
-        public string FinalText
+        private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            get => (string)GetValue(FinalTextProperty);
-            set => SetValue(FinalTextProperty, value);
+            if (d is SwitchableTextBox switchableTextBox && e.NewValue is string s)
+            {
+                if (switchableTextBox.m_checkedText == s) switchableTextBox.tb.Text = switchableTextBox.lb.Text = s;
+                else switch (switchableTextBox.CheckText(s))
+                {
+                    case true:
+                        switchableTextBox.tb.Text = switchableTextBox.lb.Text = s;
+                        break;
+                    case false:
+                        switchableTextBox.Activate(false);
+                        break;
+                    default:
+                        switchableTextBox.tb.Text = switchableTextBox.lb.Text = switchableTextBox.m_tmp;
+                        break;
+                }
+            }
         }
-        public static readonly DependencyProperty FinalTextProperty = DependencyProperty.Register("FinalText", typeof(string), typeof(SwitchableTextBox));
 
         public bool Resistant
         {
@@ -62,8 +92,7 @@ namespace BenLib.WPF
         }
         public static readonly DependencyProperty ResistantProperty = DependencyProperty.Register("Resistant", typeof(bool), typeof(SwitchableTextBox));
 
-        public bool Empty { get => Text.IsNullOrEmpty(); set => Text = string.Empty; }
-
+        public bool IsEmpty { get => Text.IsNullOrEmpty(); set => Text = string.Empty; }
         public bool CancelWhenEmpty { get; set; }
 
         public Predicate<string> CoerceText { get; set; }
@@ -79,17 +108,7 @@ namespace BenLib.WPF
 
         #region Constructeur
 
-        public SwitchableTextBox()
-        {
-            InitializeComponent();
-            Text = string.Empty;
-            DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock)).AddValueChanged(lb, (sender, e) => SetValue(TextProperty, lb.Text));
-            DependencyPropertyDescriptor.FromProperty(FinalTextProperty, typeof(SwitchableTextBox)).AddValueChanged(this, (sender, e) =>
-            {
-                tb.Text = FinalText;
-                SetText();
-            });
-        }
+        public SwitchableTextBox() => InitializeComponent();
 
         #endregion
 
@@ -112,12 +131,12 @@ namespace BenLib.WPF
         private void ActivateUI()
         {
             tb.Visibility = Visibility.Visible;
-            bd.Visibility = Visibility.Hidden;
-            lb.Visibility = Visibility.Hidden;
+            bd.Visibility = Visibility.Collapsed;
+            lb.Visibility = Visibility.Collapsed;
         }
         private void DesactivateUI()
         {
-            tb.Visibility = Visibility.Hidden;
+            tb.Visibility = Visibility.Collapsed;
             bd.Visibility = Visibility.Visible;
             lb.Visibility = Visibility.Visible;
         }
@@ -128,7 +147,7 @@ namespace BenLib.WPF
             tb.Focus();
             if (tb.IsKeyboardFocused)
             {
-                m_tmp = Text;
+                m_checkedText = m_tmp = Text;
                 tb.SelectAll();
                 m_isTextChecking = false;
                 if (notify) Activated?.Invoke(this, EventArgs.Empty);
@@ -143,8 +162,9 @@ namespace BenLib.WPF
         private bool Desactivate(IInputElement newFocus, bool notify)
         {
             if (m_isTextChecking) return false;
-            else if (SetText())
+            if (CheckText(tb.Text) != false)
             {
+                Text = m_checkedText;
                 DesactivateUI();
                 var focus = newFocus ?? lbc;
                 if (!focus.Focusable) focus = lbc;
@@ -159,14 +179,20 @@ namespace BenLib.WPF
             }
         }
 
-        private bool SetText()
+        private bool? CheckText(string text)
         {
-            m_isTextChecking = true;
-            if (!Empty) return !(m_isTextChecking = !(AllowedStrings?.Contains(Text) ?? false) && !(CoerceText?.Invoke(Text) ?? true));
-            else if (CancelWhenEmpty) Text = m_tmp;
-
-            FinalText = lb.Text;
-            return !(m_isTextChecking = true);
+            if (text.IsNullOrEmpty() && CancelWhenEmpty) return null;
+            else
+            {
+                m_isTextChecking = true;
+                if ((AllowedStrings?.Contains(text) ?? false) || (CoerceText?.Invoke(text) ?? true))
+                {
+                    m_checkedText = text;
+                    m_isTextChecking = false;
+                    return true;
+                }
+                else return false;
+            }
         }
 
         #endregion
@@ -195,10 +221,7 @@ namespace BenLib.WPF
             }
         }
 
-        private void Tb_TextChanged(object sender, TextChangedEventArgs e) => lb.Text = tb.Text;
-
         private void Tb_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) Desactivate(null); }
-
         private void Tb_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
             if (e.NewFocus == null || e.NewFocus == lbc || e.NewFocus is ContextMenu) return;

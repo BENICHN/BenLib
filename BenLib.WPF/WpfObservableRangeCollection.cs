@@ -6,6 +6,7 @@ namespace System.Windows.Data
     using System.Diagnostics;
     using System.Linq;
     using System.Reflection;
+    using System.Windows.Threading;
 
     public class WpfObservableRangeCollection<T> : ObservableRangeCollection<T>
     {
@@ -43,10 +44,14 @@ namespace System.Windows.Data
             }
 
             foreach (var handler in GetHandlers())
-                if (IsRange(e) && handler.Target is CollectionView cv)
-                    cv.Refresh();
-                else
-                    handler(this, e);
+            {
+                if (handler.Target is DispatcherObject dispatcherObject)
+                {
+                    if (IsRange(e) && handler.Target is CollectionView cv) dispatcherObject.Dispatcher.Invoke(cv.Refresh);
+                    else dispatcherObject.Dispatcher.Invoke(() => handler(this, e));
+                }
+                else handler(this, e);
+            }
         }
 
         protected override IDisposable DeferEvents() => new DeferredEventsCollection(this);

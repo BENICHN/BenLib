@@ -1,5 +1,6 @@
 namespace System.Collections.ObjectModel
 {
+    using BenLib.Standard;
     // Licensed to the .NET Foundation under one or more agreements.
     // The .NET Foundation licenses this file to you under the MIT license.
     // See the LICENSE file in the project root for more information.
@@ -8,6 +9,7 @@ namespace System.Collections.ObjectModel
     using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Diagnostics;
+    using System.Linq;
 
     /// <summary>
     /// Implementation of a dynamic data collection based on generic Collection&lt;T&gt;,
@@ -19,6 +21,7 @@ namespace System.Collections.ObjectModel
         #region Private Fields    
         [NonSerialized]
         private DeferredEventsCollection _deferredEvents;
+        private bool m_RangeOperation;
         #endregion Private Fields
 
         #region Constructors
@@ -56,7 +59,15 @@ namespace System.Collections.ObjectModel
 
         #region Public Methods
 
-        public void AddRange(params T[] array) => AddRange((IEnumerable<T>)array);
+        /// <summary>
+        /// Adds the elements of the specified collection to the end of the <see cref="ObservableCollection{T}"/>.
+        /// </summary>
+        /// <param name="array">
+        /// The collection whose elements should be added to the end of the <see cref="ObservableCollection{T}"/>.
+        /// The collection itself cannot be null, but it can contain elements that are null, if type T is a reference type.
+        /// </param>
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        public void AddRange(params T[] array) => InsertRange(Count, array);
 
         /// <summary>
         /// Adds the elements of the specified collection to the end of the <see cref="ObservableCollection{T}"/>.
@@ -68,7 +79,15 @@ namespace System.Collections.ObjectModel
         /// <exception cref="ArgumentNullException"><paramref name="collection"/> is null.</exception>
         public void AddRange(IEnumerable<T> collection) => InsertRange(Count, collection);
 
-        public void InsertRange(int index, params T[] array) => InsertRange(index, (IEnumerable<T>)array);
+        /// <summary>
+        /// Inserts the elements of a collection into the <see cref="ObservableCollection{T}"/> at the specified index.
+        /// </summary>
+        /// <param name="index">The zero-based index at which the new elements should be inserted.</param>
+        /// <param name="array">The collection whose elements should be inserted into the List<T>.
+        /// The collection itself cannot be null, but it can contain elements that are null, if type T is a reference type.</param>                
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not in the collection range.</exception>
+        public void InsertRange(int index, params T[] array) => InsertRange(index, array as IEnumerable<T>);
 
         /// <summary>
         /// Inserts the elements of a collection into the <see cref="ObservableCollection{T}"/> at the specified index.
@@ -81,11 +100,19 @@ namespace System.Collections.ObjectModel
         public void InsertRange(int index, IEnumerable<T> collection)
         {
             if (collection == null)
+            {
                 throw new ArgumentNullException(nameof(collection));
+            }
+
             if (index < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (index > Count)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
 
             if (collection is ICollection<T> countable)
             {
@@ -94,26 +121,31 @@ namespace System.Collections.ObjectModel
                     return;
                 }
             }
-            else if (!ContainsAny(collection))
+            else if (!collection.Any())
             {
                 return;
             }
 
             CheckReentrancy();
 
-            //expand the following couple of lines when adding more constructors.
-            var target = (List<T>)Items;
-            target.InsertRange(index, collection);
+            InsertItemsRange(index, collection);
 
             OnEssentialPropertiesChanged();
 
             if (!(collection is IList list))
+            {
                 list = new List<T>(collection);
+            }
 
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, list, index));
         }
 
-        public void RemoveRange(params T[] array) => RemoveRange((IEnumerable<T>)array);
+        /// <summary> 
+        /// Removes the first occurence of each item in the specified collection from the <see cref="ObservableCollection{T}"/>.
+        /// </summary>
+        /// <param name="array">The items to remove.</param>        
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        public void RemoveRange(params T[] array) => RemoveRange(array as IEnumerable<T>);
 
         /// <summary> 
         /// Removes the first occurence of each item in the specified collection from the <see cref="ObservableCollection{T}"/>.
@@ -123,7 +155,9 @@ namespace System.Collections.ObjectModel
         public void RemoveRange(IEnumerable<T> collection)
         {
             if (collection == null)
+            {
                 throw new ArgumentNullException(nameof(collection));
+            }
 
             if (Count == 0)
             {
@@ -132,16 +166,20 @@ namespace System.Collections.ObjectModel
             else if (collection is ICollection<T> countable)
             {
                 if (countable.Count == 0)
+                {
                     return;
+                }
                 else if (countable.Count == 1)
+                {
                     using (var enumerator = countable.GetEnumerator())
                     {
                         enumerator.MoveNext();
                         Remove(enumerator.Current);
                         return;
                     }
+                }
             }
-            else if (!(ContainsAny(collection)))
+            else if (!collection.Any())
             {
                 return;
             }
@@ -159,7 +197,7 @@ namespace System.Collections.ObjectModel
                     continue;
                 }
 
-                Items.RemoveAt(index);
+                RemoveItem(index);
 
                 if (lastIndex == index && lastCluster != null)
                 {
@@ -174,11 +212,16 @@ namespace System.Collections.ObjectModel
             OnEssentialPropertiesChanged();
 
             if (Count == 0)
+            {
                 OnCollectionReset();
+            }
             else
+            {
                 foreach (var cluster in clusters)
+                {
                     OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, cluster.Value, cluster.Key));
-
+                }
+            }
         }
 
         /// <summary>
@@ -204,16 +247,29 @@ namespace System.Collections.ObjectModel
         public int RemoveAll(int index, int count, Predicate<T> match)
         {
             if (index < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (count < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
             if (index + count > Count)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (match == null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
 
             if (Count == 0)
+            {
                 return 0;
+            }
 
             List<T> cluster = null;
             int clusterIndex = -1;
@@ -227,7 +283,7 @@ namespace System.Collections.ObjectModel
                     var item = Items[index];
                     if (match(item))
                     {
-                        Items.RemoveAt(index);
+                        RemoveItem(index);
                         removedCount++;
 
                         if (clusterIndex == index)
@@ -252,11 +308,15 @@ namespace System.Collections.ObjectModel
                 }
 
                 if (clusterIndex > -1)
+                {
                     OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, cluster, clusterIndex));
+                }
             }
 
             if (removedCount > 0)
+            {
                 OnEssentialPropertiesChanged();
+            }
 
             return removedCount;
         }
@@ -270,14 +330,24 @@ namespace System.Collections.ObjectModel
         public void RemoveRange(int index, int count)
         {
             if (index < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (count < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
             if (index + count > Count)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
 
             if (count == 0)
+            {
                 return;
+            }
 
             if (count == 1)
             {
@@ -286,22 +356,31 @@ namespace System.Collections.ObjectModel
             }
 
             //Items will always be List<T>, see constructors
-            var items = (List<T>)Items;
-            var removedItems = items.GetRange(index, count);
+            var removedItems = ((List<T>)Items).GetRange(index, count);
 
             CheckReentrancy();
 
-            items.RemoveRange(index, count);
+            RemoveItemsRange(index, count);
 
             OnEssentialPropertiesChanged();
 
             if (Count == 0)
+            {
                 OnCollectionReset();
+            }
             else
+            {
                 OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItems, index));
+            }
         }
 
-        public void ReplaceRange(params T[] array) => ReplaceRange((IEnumerable<T>)array);
+        /// <summary> 
+        /// Clears the current collection and replaces it with the specified collection,
+        /// using the default <see cref="EqualityComparer{T}"/>.
+        /// </summary>             
+        /// <param name="array">The items to fill the collection with, after clearing it.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        public void ReplaceRange(params T[] array) => ReplaceRange(0, Count, array, EqualityComparer<T>.Default);
 
         /// <summary> 
         /// Clears the current collection and replaces it with the specified collection,
@@ -310,6 +389,18 @@ namespace System.Collections.ObjectModel
         /// <param name="collection">The items to fill the collection with, after clearing it.</param>
         /// <exception cref="ArgumentNullException"><paramref name="collection"/> is null.</exception>
         public void ReplaceRange(IEnumerable<T> collection) => ReplaceRange(0, Count, collection, EqualityComparer<T>.Default);
+
+        /// <summary>
+        /// Clears the current collection and replaces it with the specified collection,
+        /// using the specified comparer to skip equal items.
+        /// </summary>
+        /// <param name="array">The items to fill the collection with, after clearing it.</param>
+        /// <param name="comparer">An <see cref="IEqualityComparer{T}"/> to be used
+        /// to check whether an item in the same location already existed before,
+        /// which in case it would not be added to the collection, and no event will be raised for it.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="comparer"/> is null.</exception>
+        public void ReplaceRange(IEqualityComparer<T> comparer, params T[] array) => ReplaceRange(0, Count, array, comparer);
 
         /// <summary>
         /// Clears the current collection and replaces it with the specified collection,
@@ -329,11 +420,36 @@ namespace System.Collections.ObjectModel
         /// </summary>
         /// <param name="index">The index of where to start the replacement.</param>
         /// <param name="count">The number of items to be replaced.</param>
+        /// <param name="array">The collection to insert in that location.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is out of range.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is out of range.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        public void ReplaceRange(int index, int count, params T[] array) => ReplaceRange(index, count, array, EqualityComparer<T>.Default);
+
+        /// <summary>
+        /// Removes the specified range and inserts the specified collection,
+        /// ignoring equal items (using <see cref="EqualityComparer{T}.Default"/>).
+        /// </summary>
+        /// <param name="index">The index of where to start the replacement.</param>
+        /// <param name="count">The number of items to be replaced.</param>
         /// <param name="collection">The collection to insert in that location.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is out of range.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is out of range.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="collection"/> is null.</exception>
         public void ReplaceRange(int index, int count, IEnumerable<T> collection) => ReplaceRange(index, count, collection, EqualityComparer<T>.Default);
+
+        /// <summary>
+        /// Removes the specified range and inserts the specified collection in its position, leaving equal items in equal positions intact.
+        /// </summary>
+        /// <param name="index">The index of where to start the replacement.</param>
+        /// <param name="count">The number of items to be replaced.</param>
+        /// <param name="array">The collection to insert in that location.</param>
+        /// <param name="comparer">The comparer to use when checking for equal items.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is out of range.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is out of range.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="array"/> is null.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="comparer"/> is null.</exception>
+        public void ReplaceRange(int index, int count, IEqualityComparer<T> comparer, params T[] array) => ReplaceRange(index, count, array, comparer);
 
         /// <summary>
         /// Removes the specified range and inserts the specified collection in its position, leaving equal items in equal positions intact.
@@ -349,16 +465,29 @@ namespace System.Collections.ObjectModel
         public void ReplaceRange(int index, int count, IEnumerable<T> collection, IEqualityComparer<T> comparer)
         {
             if (index < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             if (count < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
             if (index + count > Count)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
 
             if (collection == null)
+            {
                 throw new ArgumentNullException(nameof(collection));
+            }
+
             if (comparer == null)
+            {
                 throw new ArgumentNullException(nameof(comparer));
+            }
 
             if (collection is ICollection<T> countable)
             {
@@ -368,7 +497,7 @@ namespace System.Collections.ObjectModel
                     return;
                 }
             }
-            else if (!ContainsAny(collection))
+            else if (!collection.Any())
             {
                 RemoveRange(index, count);
                 return;
@@ -381,7 +510,9 @@ namespace System.Collections.ObjectModel
             }
 
             if (!(collection is IList<T> list))
+            {
                 list = new List<T>(collection);
+            }
 
             using (BlockReentrancy())
             using (DeferEvents())
@@ -399,25 +530,27 @@ namespace System.Collections.ObjectModel
                 for (; i < rangeCount && i - index < addedCount; i++)
                 {
                     //parallel position
-                    T old = this[i], @new = list[i - index];
-                    if (comparer.Equals(old, @new))
+                    T old = this[i], newItem = list[i - index];
+                    if (comparer.Equals(old, newItem))
                     {
                         OnRangeReplaced(i, newCluster, oldCluster);
                         continue;
                     }
                     else
                     {
-                        Items[i] = @new;
+                        m_RangeOperation = true;
+                        SetItem(i, newItem);
+                        m_RangeOperation = false;
 
                         if (newCluster == null)
                         {
                             Debug.Assert(oldCluster == null);
-                            newCluster = new List<T> { @new };
+                            newCluster = new List<T> { newItem };
                             oldCluster = new List<T> { old };
                         }
                         else
                         {
-                            newCluster.Add(@new);
+                            newCluster.Add(newItem);
                             oldCluster.Add(old);
                         }
 
@@ -430,13 +563,12 @@ namespace System.Collections.ObjectModel
                 //exceeding position
                 if (count != addedCount)
                 {
-                    var items = (List<T>)Items;
                     if (count > addedCount)
                     {
                         int removedCount = rangeCount - addedCount;
                         var removed = new T[removedCount];
-                        items.CopyTo(i, removed, 0, removed.Length);
-                        items.RemoveRange(i, removedCount);
+                        ((List<T>)Items).CopyTo(i, removed, 0, removed.Length);
+                        RemoveItemsRange(i, removedCount);
                         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removed, i));
                     }
                     else
@@ -445,10 +577,10 @@ namespace System.Collections.ObjectModel
                         var added = new T[addedCount - k];
                         for (int j = k; j < addedCount; j++)
                         {
-                            var @new = list[j];
-                            added[j - k] = @new;
+                            var newItem = list[j];
+                            added[j - k] = newItem;
                         }
-                        items.InsertRange(i, added);
+                        InsertItemsRange(i, added);
                         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, added, i));
                     }
 
@@ -472,7 +604,9 @@ namespace System.Collections.ObjectModel
         protected override void ClearItems()
         {
             if (Count == 0)
+            {
                 return;
+            }
 
             CheckReentrancy();
             base.ClearItems();
@@ -486,15 +620,28 @@ namespace System.Collections.ObjectModel
         /// </summary>
         protected override void SetItem(int index, T item)
         {
-            if (Equals(this[index], item))
-                return;
+            if (m_RangeOperation) Items[index] = item;
+            else if(!Equals(this[index], item))
+            {
+                CheckReentrancy();
+                var originalItem = this[index];
+                base.SetItem(index, item);
 
-            CheckReentrancy();
-            var originalItem = this[index];
-            base.SetItem(index, item);
+                OnIndexerPropertyChanged();
+                OnCollectionChanged(NotifyCollectionChangedAction.Replace, originalItem, item, index);
+            }
+        }
 
-            OnIndexerPropertyChanged();
-            OnCollectionChanged(NotifyCollectionChangedAction.Replace, originalItem, item, index);
+        protected override void InsertItem(int index, T item)
+        {
+            if (m_RangeOperation) Items.Insert(index, item);
+            else base.InsertItem(index, item);
+        }
+
+        protected override void RemoveItem(int index)
+        {
+            if (m_RangeOperation) Items.RemoveAt(index);
+            else base.RemoveItem(index);
         }
 
         /// <summary>
@@ -522,15 +669,19 @@ namespace System.Collections.ObjectModel
 
         #region Private Methods
 
-        /// <summary>
-        /// Helper function to determine if a collection contains any elements.
-        /// </summary>
-        /// <param name="collection">The collection to evaluate.</param>
-        /// <returns></returns>
-        private static bool ContainsAny(IEnumerable<T> collection)
+        private void InsertItemsRange(int index, IEnumerable<T> items)
         {
-            using (var enumerator = collection.GetEnumerator())
-                return enumerator.MoveNext();
+            m_RangeOperation = true;
+            if (items is ICollection<T> countable) ((List<T>)Items).Capacity += countable.Count;
+            items.ForEach((item, i) => InsertItem(index + i, item));
+            m_RangeOperation = false;
+        }
+
+        private void RemoveItemsRange(int index, int count)
+        {
+            m_RangeOperation = true;
+            for (int i = index; i < index + count; i++) RemoveItem(i);
+            m_RangeOperation = false;
         }
 
         /// <summary>
@@ -605,11 +756,14 @@ namespace System.Collections.ObjectModel
             {
                 _collection._deferredEvents = null;
                 foreach (var args in this)
+                {
                     _collection.OnCollectionChanged(args);
+                }
             }
         }
 
         #endregion Private Types
+
     }
 
     /// <remarks>

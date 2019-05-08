@@ -4,7 +4,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace BenLib
+namespace BenLib.Framework
 {
     /// <summary>
     /// <para>Provides notifications when the contents of the clipboard is updated.</para>

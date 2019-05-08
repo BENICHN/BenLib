@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BenLib.Standard;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +9,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
-namespace BenLib
+namespace BenLib.Framework
 {
     public static class Animating
     {
@@ -3331,8 +3332,8 @@ namespace BenLib
 
         public static double EaseOn(double normalizedTime, double inflection = 10)
         {
-            double error = Num.Sigmoid(-inflection / 2);
-            return (Num.Sigmoid(inflection * (normalizedTime - 0.5)) - error) / (1 - 2 * error);
+            double error = Standard.Num.Sigmoid(-inflection / 2);
+            return (Standard.Num.Sigmoid(inflection * (normalizedTime - 0.5)) - error) / (1 - 2 * error);
         }
     }
 

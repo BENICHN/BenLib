@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace BenLib
+namespace BenLib.Framework
 {
     public class Input
     {

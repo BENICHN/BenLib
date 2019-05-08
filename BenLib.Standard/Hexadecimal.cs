@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BenLib
+namespace BenLib.Standard
 {
     /// <summary>
     /// Contient des outils pour manipuler du code hexadécimal.

@@ -45,6 +45,9 @@
     <Reference Include="BenLib">
       <HintPath>..\BenLib\bin\Debug\BenLib.dll</HintPath>
     </Reference>
+    <Reference Include="BenLib.Standard">
+      <HintPath>..\BenLib.Standard\bin\Debug\netstandard2.0\BenLib.Standard.dll</HintPath>
+    </Reference>
     <Reference Include="BenLib.WPF">
       <HintPath>..\BenLib.WPF\bin\Debug\BenLib.WPF.dll</HintPath>
     </Reference>

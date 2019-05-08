@@ -1,18 +1,14 @@
-﻿using System.Windows.Controls;
+﻿using BenLib.Framework;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Clipboard = System.Windows.Forms.Clipboard;
+using Threading = BenLib.Standard.Threading;
 
 namespace BenLib.WPF
 {
     public static class ApplicationCommands
     {
-        public static ICommand Copy => new CommandHandler(sender =>
-        {
-            if (sender is TextBox tbsender)
-            {
-                Threading.MultipleAttempts(() => Clipboard.SetText(tbsender.SelectedText), throwEx: false);
-            }
-        });
+        public static ICommand Copy => new CommandHandler(sender => { if (sender is TextBox tbsender) Threading.MultipleAttempts(() => Clipboard.SetText(tbsender.SelectedText), throwEx: false); });
 
         public static ICommand Cut => new CommandHandler(sender =>
         {
@@ -26,9 +22,6 @@ namespace BenLib.WPF
             }
         });
 
-        public static ICommand Paste => new CommandHandler(sender =>
-        {
-            if (sender is TextBox tbsender) tbsender.Paste();
-        });
+        public static ICommand Paste => new CommandHandler(sender => {  if (sender is TextBox tbsender) tbsender.Paste(); });
     }
 }

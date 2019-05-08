@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Controls;
+using System.Runtime.CompilerServices;
 
 namespace BenLib.WPF
 {
@@ -27,7 +28,7 @@ namespace BenLib.WPF
 
         public bool IsPressed { get => (bool)m_element.GetValue(IsPressedProperty); set => m_element.SetValue(IsPressedProperty, value); }
 
-        private static readonly Dictionary<FrameworkElement, WPFExtensions> m_attachedControls = new Dictionary<FrameworkElement, WPFExtensions>();
+        private static readonly ConditionalWeakTable<FrameworkElement, WPFExtensions> m_attachedControls = new ConditionalWeakTable<FrameworkElement, WPFExtensions>();
 
         private readonly FrameworkElement m_element;
 
@@ -37,6 +38,8 @@ namespace BenLib.WPF
             if (m_element.IsLoaded) Register();
             else m_element.Loaded += Element_Loaded;
         }
+
+        ~WPFExtensions() => UnRegister();
 
         private void Element_Loaded(object sender, RoutedEventArgs e)
         {
@@ -72,14 +75,13 @@ namespace BenLib.WPF
             {
                 if ((bool)e.NewValue) //Register
                 {
-                    if (!m_attachedControls.ContainsKey(element)) m_attachedControls.Add(element, new WPFExtensions(element));
+                    if (!m_attachedControls.TryGetValue(element, out var _)) m_attachedControls.Add(element, new WPFExtensions(element));
                 }
                 else //Unregister
                 {
                     if (m_attachedControls.TryGetValue(element, out var extensions))
                     {
                         m_attachedControls.Remove(element);
-                        extensions.UnRegister();
                     }
                 }
             }
