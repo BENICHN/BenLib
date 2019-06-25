@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,11 +15,11 @@ namespace BenLib.Standard
         public static Regex UnsignedInteger = new Regex(@"^\d+$");
         public static Regex PreviewUnsignedInteger = new Regex(@"^(\d+)?$");
 
-        public static Regex Double = new Regex(@"^(\-)?\d+((\.|,)\d+)?(E(\+|\-)?\d+)?$");
-        public static Regex PreviewDouble = new Regex(@"^(\-)?(\d+(((\.|,)(\d+)?)?(E(\+|\-)?(\d+)?)?)?)?$");
+        public static Regex Decimal = new Regex(@"^(\-)?\d+((\.|,)\d+)?(E(\+|\-)?\d+)?$");
+        public static Regex PreviewDecimal = new Regex(@"^(\-)?(\d+(((\.|,)(\d+)?)?(E(\+|\-)?(\d+)?)?)?)?$");
 
-        public static Regex UnsignedDouble = new Regex(@"^\d+((\.|,)\d+)?(E(\+|\-)?\d+)?$");
-        public static Regex PreviewUnsignedDouble = new Regex(@"^(\d+(((\.|,)(\d+)?)?(E(\+|\-)?(\d+)?)?)?)?$");
+        public static Regex UnsignedDecimal = new Regex(@"^\d+((\.|,)\d+)?(E(\+|\-)?\d+)?$");
+        public static Regex PreviewUnsignedDecimal = new Regex(@"^(\d+(((\.|,)(\d+)?)?(E(\+|\-)?(\d+)?)?)?)?$");
 
         public static NumberFormatInfo DecimalSeparatorPoint = new NumberFormatInfo() { NumberDecimalSeparator = ".", PercentDecimalSeparator = ".", CurrencyDecimalSeparator = "." };
         public static NumberFormatInfo DecimalSeparatorComma = new NumberFormatInfo() { NumberDecimalSeparator = ",", PercentDecimalSeparator = ",", CurrencyDecimalSeparator = "," };
@@ -129,15 +128,16 @@ namespace BenLib.Standard
         public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
         public static bool IsNullOrWhiteSpace(this string s) => string.IsNullOrWhiteSpace(s);
 
-        public static List<int> AllIndexesOf(this string str, string value)
+        public static IEnumerable<int> AllIndexesOf(this string str, string value)
         {
-            if (string.IsNullOrEmpty(value)) throw new ArgumentException("the string to find may not be empty", "value");
-            var indexes = new List<int>();
-            for (int index = 0; ; index += value.Length)
+            if (!value.IsNullOrEmpty())
             {
-                index = str.IndexOf(value, index);
-                if (index == -1) return indexes;
-                indexes.Add(index);
+                for (int index = 0; ; index += value.Length)
+                {
+                    index = str.IndexOf(value, index);
+                    if (index == -1) break;
+                    yield return index;
+                }
             }
         }
 
@@ -495,7 +495,7 @@ namespace BenLib.Standard
 
         public static bool IsInteger(this string s) => Literal.Integer.IsMatch(s);
 
-        public static bool IsDecimalNumber(this string s) => Literal.Double.IsMatch(s);
+        public static bool IsDecimalNumber(this string s) => Literal.Decimal.IsMatch(s);
 
         #region Integer
 

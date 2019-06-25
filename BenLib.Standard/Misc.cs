@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 namespace BenLib.Standard
 {
+    public static class Misc
+    {
+        public static IEnumerable<Type> BaseTypes(this Type type) => type.BaseType is Type baseType ? baseType.BaseTypes().Append(baseType) : Enumerable.Empty<Type>();
+    }
+
     public static partial class Extensions
     {
         public static void Times(this int count, Action action) { for (int i = 0; i < count; i++) action(); }
@@ -13,19 +19,28 @@ namespace BenLib.Standard
 
         public static void ExtractEmbeddedResource(this Assembly assembly, string outputPath, string resource)
         {
-            using (var stream = assembly.GetManifestResourceStream(resource))
-            using (var fileStream = new FileStream(outputPath, FileMode.Create)) stream.CopyTo(fileStream);
+            using var stream = assembly.GetManifestResourceStream(resource);
+            using var fileStream = new FileStream(outputPath, FileMode.Create);
+            stream.CopyTo(fileStream);
         }
 
         public static Task ExtractEmbeddedResourceAsync(this Assembly assembly, string outputPath, string resource)
         {
-            using (var stream = assembly.GetManifestResourceStream(resource))
-            using (var fileStream = new FileStream(outputPath, FileMode.Create)) return stream.CopyToAsync(fileStream);
+            using var stream = assembly.GetManifestResourceStream(resource);
+            using var fileStream = new FileStream(outputPath, FileMode.Create);
+            return stream.CopyToAsync(fileStream);
         }
 
         public static object GetPropValue(this object src, string propName) => src.GetType().GetProperty(propName).GetValue(src, null);
 
         public static void SetPropValue(this object src, string propName, object value) => src.GetType().GetProperty(propName).SetValue(src, value);
+
+        public static IEnumerable<FieldInfo> GetAllFields(this Type type)
+        {
+            IEnumerable<FieldInfo> result = type.GetFields();
+            if (type.BaseType != null) result = result.Concat(type.BaseType.GetAllFields());
+            return result;
+        }
 
         public static TryResult TryAccess(this object src, string propName)
         {
@@ -90,8 +105,8 @@ namespace BenLib.Standard
 
         public static implicit operator bool(TryResult result) => result.Result;
         public static implicit operator Exception(TryResult result) => result.Exception;
-        public static implicit operator TryResult(bool result) =>new TryResult(result);
-        public static implicit operator TryResult(Exception ex) =>new TryResult(false, ex);
+        public static implicit operator TryResult(bool result) => new TryResult(result);
+        public static implicit operator TryResult(Exception ex) => new TryResult(false, ex);
     }
 
     public class DescendingComparer<T> : IComparer<T> where T : IComparable<T>

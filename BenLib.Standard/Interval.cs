@@ -320,6 +320,8 @@ namespace BenLib.Standard
 
     public abstract class Interval<T> where T : IComparable<T>
     {
+        internal Interval() { }
+
         public abstract bool IsEmpty { get; }
         protected abstract Interval<T> Invert { get; }
         public abstract IEnumerable<Range<T>> Ranges { get; }
@@ -348,6 +350,11 @@ namespace BenLib.Standard
         public static bool operator >(Ordinal<T> left, Interval<T> right) => right < left;
         public static bool operator <=(Ordinal<T> left, Interval<T> right) => right >= left;
         public static bool operator >=(Ordinal<T> left, Interval<T> right) => right <= left;
+
+        public static bool operator ==(Interval<T> left, Interval<T> right) => !(left != right);
+        public static bool operator !=(Interval<T> left, Interval<T> right) => left == (object)null ^ right == (object)null || !(left ^ right).IsEmpty;
+        public override bool Equals(object obj) => base.Equals(obj);
+        public override int GetHashCode() => base.GetHashCode();
 
         public static Interval<T> operator |(Interval<T> left, Interval<T> right) => left.Union(right);
         public static Interval<T> operator &(Interval<T> left, Interval<T> right) => left.Inter(right);
@@ -387,7 +394,7 @@ namespace BenLib.Standard
         public static MultiRange<T> RealsNoZero = (MultiRange<T>)(NegativeRealsNoZero | PositiveRealsNoZero);
     }
 
-    public class Range<T> : Interval<T>, IEquatable<Range<T>> where T : IComparable<T>
+    public sealed class Range<T> : Interval<T>, IEquatable<Range<T>> where T : IComparable<T>
     {
         internal readonly Ordinal<T> m_start = Ordinal<T>.NaN;
         internal readonly Ordinal<T> m_end = Ordinal<T>.NaN;
@@ -410,7 +417,8 @@ namespace BenLib.Standard
         protected override Interval<T> Invert => IsEmpty ? Reals : MultiRange<T>.Create(new[] { OO(Ordinal<T>.NegativeInfinity, m_start), OO(m_end, Ordinal<T>.PositiveInfinity) });
 
         protected override bool Contains(Ordinal<T> value, bool allowBounds) => !IsEmpty && allowBounds ? m_start.CompareTo(value) <= 0 && value.CompareTo(m_end) <= 0 : m_start.CompareTo(value) < 0 && value.CompareTo(m_end) < 0;
-        protected override bool Contains(Interval<T> value, bool allowBounds) => !IsEmpty && value.Ranges.All(range => Contains(range.m_start, allowBounds) && Contains(range.m_end, allowBounds));
+        private bool Contains(Range<T> value, bool allowBounds) => value.IsEmpty ? allowBounds || !IsEmpty : Contains(value.m_start, allowBounds) && Contains(value.m_end, allowBounds);
+        protected override bool Contains(Interval<T> value, bool allowBounds) => value is Range<T> range ? Contains(range, allowBounds) : !IsEmpty && value.Ranges.All(range => Contains(range, allowBounds));
 
         protected override Interval<T> Union(Interval<T> value) => MultiRange<T>.Create(value.Ranges.Prepend(this).ToArray());
         protected override Interval<T> Inter(Interval<T> value) => IsEmpty ? EmptySet : MultiRange<T>.Create(value.Ranges.Select(r => r.IsEmpty ? EmptySet : new Range<T>(Ordinal<T>.Max(m_start, r.m_start), Ordinal<T>.Min(m_end, r.m_end))));
@@ -449,7 +457,7 @@ namespace BenLib.Standard
         public static bool operator !=(Range<T> left, Range<T> right) => !(left == right);
     }
 
-    public class MultiRange<T> : Interval<T>, IEquatable<MultiRange<T>> where T : IComparable<T>
+    public sealed class MultiRange<T> : Interval<T>, IEquatable<MultiRange<T>> where T : IComparable<T>
     {
         private readonly Range<T>[] m_ranges;
 
@@ -461,7 +469,8 @@ namespace BenLib.Standard
         protected override Interval<T> Invert => m_ranges.Select(r => !r).Inter();
 
         protected override bool Contains(Ordinal<T> value, bool allowBounds) => m_ranges.Any(r => allowBounds ? r >= value : r > value);
-        protected override bool Contains(Interval<T> value, bool allowBounds) => value.Ranges.All(ra => m_ranges.Any(r => allowBounds ? r >= ra : r > ra));
+        private bool Contains(Range<T> value, bool allowBounds) => value.IsEmpty ? true : m_ranges.Any(r => allowBounds ? r >= value : r > value);
+        protected override bool Contains(Interval<T> value, bool allowBounds) => value is Range<T> range ? Contains(range, allowBounds) : value.Ranges.All(range => Contains(range, allowBounds));
 
         protected override Interval<T> Inter(Interval<T> value) => Create(m_ranges.SelectMany(r => (value & r).Ranges).ToArray());
         protected override Interval<T> Union(Interval<T> value) => Create(value.Ranges.Concat(m_ranges).ToArray());
@@ -493,9 +502,17 @@ namespace BenLib.Standard
             }
         }
 
-        public override string ToString() =>
-            this == RealsNoZero ? "ℝ*" :
-            "{" + string.Join(" ; ", m_ranges.Where(r => r.IsSingle).Select(r => r.m_start)) + "} ∪ " + string.Join(" ∪ ", m_ranges.Where(r => !r.IsSingle));
+        public override string ToString()
+        {
+            if (this == RealsNoZero) return "ℝ*";
+            string singles = string.Empty, ranges = string.Empty;
+            foreach (var group in m_ranges.GroupBy(r => r.IsSingle))
+            {
+                if (group.Key) singles = string.Join(" ; ", group.Select(r => r.m_start));
+                else ranges = string.Join(" ∪ ", group);
+            }
+            return ("{" + singles + "}" + " ∪ " + ranges).Trim(' ', '∪');
+        }
 
         public override bool Equals(object obj) => Equals(obj as MultiRange<T>);
         public bool Equals(MultiRange<T> other) => other != null && (m_ranges == other.m_ranges || m_ranges.SequenceEqual(other.m_ranges));
@@ -593,20 +610,20 @@ namespace BenLib.Standard
         public static IEnumerable<float> Numbers(this Range<float> range, float step, float start = float.MinValue, float end = float.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            float endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
-            for (float i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            float endValue = range.End.IsReal ? Min(end, range.End.Value) - (range.End.Level < 0 ? step : 0) : end;
+            for (float i = range.Start.IsReal ? Max(start, range.Start.Value) + (range.Start.Level > 0 ? step : 0) : start; i <= endValue; i += step) yield return i;
         }
         public static IEnumerable<double> Numbers(this Range<double> range, double step, double start = double.MinValue, double end = double.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            double endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
-            for (double i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            double endValue = range.End.IsReal ? Min(end, range.End.Value) - (range.End.Level < 0 ? step : 0) : end;
+            for (double i = range.Start.IsReal ? Max(start, range.Start.Value) + (range.Start.Level > 0 ? step : 0) : start; i <= endValue; i += step) yield return i;
         }
         public static IEnumerable<decimal> Numbers(this Range<decimal> range, decimal step, decimal start = decimal.MinValue, decimal end = decimal.MaxValue)
         {
             if (range.IsEmpty) yield break;
-            decimal endValue = range.End.IsReal ? Min(end, range.End.Value) - range.End.Level < 0 ? step : 0 : end;
-            for (decimal i = range.Start.IsReal ? Max(start, range.Start.Value) + range.Start.Level > 0 ? step : 0 : start; i <= endValue; i += step) yield return i;
+            decimal endValue = range.End.IsReal ? Min(end, range.End.Value) - (range.End.Level < 0 ? step : 0) : end;
+            for (decimal i = range.Start.IsReal ? Max(start, range.Start.Value) + (range.Start.Level > 0 ? step : 0) : start; i <= endValue; i += step) yield return i;
         }
 
         public static IEnumerable<IEnumerable<int>> RangesNumbers(this Interval<int> interval, int start = int.MinValue, int end = int.MaxValue) => interval.Ranges.Select(r => r.Numbers(start, end));

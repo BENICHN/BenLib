@@ -1,7 +1,9 @@
 ﻿using BenLib.Standard;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -11,7 +13,7 @@ using static BenLib.Standard.Num;
 
 namespace BenLib.WPF
 {
-    public static class Misc
+    public static class MiscWPF
     {
         /*public static readonly DependencyProperty CommandBindingsProperty = DependencyProperty.RegisterAttached("CommandBindings", typeof(CommandBindingCollection), typeof(Misc), new UIPropertyMetadata(null, CommandBindingsChanged));
 
@@ -46,18 +48,6 @@ namespace BenLib.WPF
             Canvas.SetLeft(result, center.X - radius);
 
             return result;
-        }
-
-        public static SolidColorBrush BrushFromHex(uint hex)
-        {
-            byte a = (byte)(hex / 0x1000000);
-            hex -= (uint)a * 0x1000000;
-            byte r = (byte)(hex / 0x10000);
-            hex -= (uint)r * 0x10000;
-            byte g = (byte)(hex / 0x100);
-            hex -= (uint)g * 0x100;
-            byte b = (byte)hex;
-            return new SolidColorBrush(Color.FromArgb(a, r, g, b));
         }
     }
 
@@ -175,6 +165,14 @@ namespace BenLib.WPF
 
             //check if the parent matches the type we're looking for
             return parentObject is T parent ? parent : FindParent<T>(parentObject);
+        }
+
+        public static IEnumerable<FieldInfo> GetDependencyProperties(this Type type) => type.GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType.Equals(typeof(DependencyProperty)));
+        public static IEnumerable<FieldInfo> GetAllDependencyProperties(this Type type)
+        {
+            var properties = type.GetDependencyProperties();
+            if (type.BaseType != typeof(DependencyObject)) properties = properties.Union(type.BaseType.GetAllDependencyProperties());
+            return properties;
         }
     }
 

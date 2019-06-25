@@ -21,7 +21,7 @@ namespace BenLib.WPF
         /// <summary>
         /// Type de contenu de la <see cref='InputBox'/>.
         /// </summary>
-        public ContentTypes ContentType { get => TypedTextBox.GetContentType(tb); set => TypedTextBox.SetContentType(tb, value); }
+        public ContentType ContentType { get => tb.ContentType; set => tb.ContentType = value; }
 
         /// <summary>
         /// Contenu de la <see cref='InputBox'/>.
@@ -32,7 +32,7 @@ namespace BenLib.WPF
 
         #region Constructeur
 
-        public InputBox(string Text = "", string Caption = "", ContentTypes ContentType = ContentTypes.Text, Brush BottomBrush = null)
+        public InputBox(string Text = "", string Caption = "", ContentType ContentType = ContentType.Text, Brush BottomBrush = null)
         {
             InitializeComponent();
             Title = Caption;
@@ -53,7 +53,7 @@ namespace BenLib.WPF
             return m_result;
         }
 
-        public static InputBoxResult Show(string Text = "", string Caption = "", ContentTypes ContentType = ContentTypes.Text, Brush BottomBrush = null)
+        public static InputBoxResult Show(string Text = "", string Caption = "", ContentType ContentType = ContentType.Text, Brush BottomBrush = null)
         {
             var box = new InputBox(Text, Caption, ContentType, BottomBrush);
             return new InputBoxResult(box.ShowDialog(), box.Text);

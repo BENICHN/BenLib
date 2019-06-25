@@ -1,6 +1,8 @@
-﻿using BenLib.Standard;
+﻿using BenLib.Framework;
+using BenLib.Standard;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,86 +20,43 @@ namespace BenLib.WPF
         private string m_tmp;
         private bool m_isTextChecking;
         private string m_checkedText;
+        private bool m_clicked;
+        private Point m_previousPosition;
 
-        public ContentTypes ContentType { get => TypedTextBox.GetContentType(tb); set => TypedTextBox.SetContentType(tb, value); }
-        public ICollection<string> ForbiddenStrings { get => TypedTextBox.GetForbiddenStrings(tb); set => TypedTextBox.SetForbiddenStrings(tb, value); }
-        public ICollection<string> AllowedStrings { get => TypedTextBox.GetAllowedStrings(tb); set => TypedTextBox.SetAllowedStrings(tb, value); }
+        public double DragValue { get; private set; }
+        public bool IsDragging { get; private set; }
 
-        public Brush SBorderBrush { get; set; }
+        public Regex Regex { get => tb.Regex; set => tb.Regex = value; }
+        public ContentType ContentType { get => tb.ContentType; set => tb.ContentType = value; }
+        public ICollection<string> ForbiddenStrings { get => tb.ForbiddenStrings; set => tb.ForbiddenStrings = value; }
+        public ICollection<string> AllowedStrings { get => tb.AllowedStrings; set => tb.AllowedStrings = value; }
 
-        public Brush SBackground
-        {
-            get => (Brush)GetValue(SBackgroundProperty);
-            set => SetValue(SBackgroundProperty, value);
-        }
-        public static readonly DependencyProperty SBackgroundProperty = DependencyProperty.Register("SBackground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.White, OnSBackgroundChanged));
+        public Brush SBorderBrush { get => (Brush)GetValue(SBorderBrushProperty); set => SetValue(SBorderBrushProperty, value); }
+        public static readonly DependencyProperty SBorderBrushProperty = DependencyProperty.Register("SBorderBrush", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(SystemColors.ActiveBorderBrush, (d, e) => { if (d is SwitchableTextBox switchableTextBox && switchableTextBox.IsMouseOver) switchableTextBox.bd.BorderBrush = (Brush)e.NewValue; }));
 
-        public Brush SForeground
-        {
-            get => (Brush)GetValue(SForegroundProperty);
-            set => SetValue(SForegroundProperty, value);
-        }
-        public static readonly DependencyProperty SForegroundProperty = DependencyProperty.Register("SForeground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.Black, OnSForegroundChanged));
+        public Brush SBackground { get => (Brush)GetValue(SBackgroundProperty); set => SetValue(SBackgroundProperty, value); }
+        public static readonly DependencyProperty SBackgroundProperty = DependencyProperty.Register("SBackground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.White, (d, e) => { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Background = (Brush)e.NewValue; }));
 
-        //public Point InRanderTransformOrigin
-        //{
-        //    get => (Point)GetValue(InRanderTransformOriginProperty);
-        //    set => SetValue(InRanderTransformOriginProperty, value);
-        //}
-        //public static readonly DependencyProperty InRanderTransformOriginProperty = DependencyProperty.Register("InRanderTransformOrigin", typeof(Point), typeof(SwitchableTextBox), new PropertyMetadata(OnTranformOriginChanged));
+        public Brush SForeground { get => (Brush)GetValue(SForegroundProperty); set => SetValue(SForegroundProperty, value); }
+        public static readonly DependencyProperty SForegroundProperty = DependencyProperty.Register("SForeground", typeof(Brush), typeof(SwitchableTextBox), new PropertyMetadata(Brushes.Black, (d, e) => { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Foreground = switchableTextBox.lb.Foreground = (Brush)e.NewValue; }));
 
-        //public Transform InRanderTransform
-        //{
-        //    get => (Transform)GetValue(InRanderTransformProperty);
-        //    set => SetValue(InRanderTransformProperty, value);
-        //}
-        //public static readonly DependencyProperty InRanderTransformProperty = DependencyProperty.Register("InRanderTransform", typeof(Transform), typeof(SwitchableTextBox), new PropertyMetadata(OnTransformChanged));
+        public string Text { get => (string)GetValue(TextProperty); set => SetValue(TextProperty, value); }
+        public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox), new PropertyMetadata((d, e) => { if (d is SwitchableTextBox switchableTextBox && e.NewValue is string s) switchableTextBox.SetText(s); }));
 
-        //private static void OnTranformOriginChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox && e.NewValue is Point origin) switchableTextBox.grid.RenderTransformOrigin = origin; }
-        //private static void OnTransformChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox && e.NewValue is Transform transform) switchableTextBox.grid.RenderTransform = transform; }
-        private static void OnSBackgroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Background = (Brush)e.NewValue; }
-        private static void OnSForegroundChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { if (d is SwitchableTextBox switchableTextBox) switchableTextBox.tb.Foreground = switchableTextBox.lb.Foreground = (Brush)e.NewValue; }
-
-        public string Text
-        {
-            get => (string)GetValue(TextProperty);
-            set => SetValue(TextProperty, value);
-        }
-        public static readonly DependencyProperty TextProperty = DependencyProperty.Register("Text", typeof(string), typeof(SwitchableTextBox), new PropertyMetadata(OnTextChanged));
-
-        private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is SwitchableTextBox switchableTextBox && e.NewValue is string s)
-            {
-                if (switchableTextBox.m_checkedText == s) switchableTextBox.tb.Text = switchableTextBox.lb.Text = s;
-                else switch (switchableTextBox.CheckText(s))
-                {
-                    case true:
-                        switchableTextBox.tb.Text = switchableTextBox.lb.Text = s;
-                        break;
-                    case false:
-                        switchableTextBox.Activate(false);
-                        break;
-                    default:
-                        switchableTextBox.tb.Text = switchableTextBox.lb.Text = switchableTextBox.m_tmp;
-                        break;
-                }
-            }
-        }
-
-        public bool Resistant
-        {
-            get => (bool)GetValue(ResistantProperty);
-            set => SetValue(ResistantProperty, value);
-        }
+        public bool Resistant { get => (bool)GetValue(ResistantProperty); set => SetValue(ResistantProperty, value); }
         public static readonly DependencyProperty ResistantProperty = DependencyProperty.Register("Resistant", typeof(bool), typeof(SwitchableTextBox));
 
-        public bool IsEmpty { get => Text.IsNullOrEmpty(); set => Text = string.Empty; }
-        public bool CancelWhenEmpty { get; set; }
+        public bool Drag { get => (bool)GetValue(DragProperty); set => SetValue(DragProperty, value); }
+        public static readonly DependencyProperty DragProperty = DependencyProperty.Register("Drag", typeof(bool), typeof(SwitchableTextBox));
 
-        public Predicate<string> CoerceText { get; set; }
+        public bool CancelWhenEmpty { get => (bool)GetValue(CancelWhenEmptyProperty); set => SetValue(CancelWhenEmptyProperty, value); }
+        public static readonly DependencyProperty CancelWhenEmptyProperty = DependencyProperty.Register("CancelWhenEmpty", typeof(bool), typeof(SwitchableTextBox), new PropertyMetadata(true));
 
-        public TextBox TextBox => tb;
+        public Predicate<string> TextValidation { get => (Predicate<string>)GetValue(TextValidationProperty); set => SetValue(TextValidationProperty, value); }
+        public static readonly DependencyProperty TextValidationProperty = DependencyProperty.Register("TextValidation", typeof(Predicate<string>), typeof(SwitchableTextBox));
+
+        public TypedTextBox TextBox => tb;
+        public TextBlock TextBlock => lb;
 
         public event EventHandler Activated;
         public event EventHandler<EventArgs<IInputElement>> Desactivated;
@@ -108,7 +67,11 @@ namespace BenLib.WPF
 
         #region Constructeur
 
-        public SwitchableTextBox() => InitializeComponent();
+        public SwitchableTextBox()
+        {
+            InitializeComponent();
+            SetText(Text);
+        }
 
         #endregion
 
@@ -119,8 +82,8 @@ namespace BenLib.WPF
 
         private void ActivateOver()
         {
-            bd.Background = SBackground ?? Brushes.White;
-            bd.BorderBrush = SBorderBrush ?? SystemColors.ActiveBorderBrush;
+            bd.Background = SBackground;
+            bd.BorderBrush = SBorderBrush;
         }
         private void DesactivateOver()
         {
@@ -179,13 +142,32 @@ namespace BenLib.WPF
             }
         }
 
+        private void SetText(string text)
+        {
+            if (m_checkedText == text) tb.Text = lb.Text = text;
+            else
+            {
+                switch (CheckText(text))
+                {
+                    case true:
+                        tb.Text = lb.Text = text;
+                        break;
+                    case false:
+                        Activate(false);
+                        break;
+                    default:
+                        tb.Text = lb.Text = m_tmp;
+                        break;
+                }
+            }
+        }
         private bool? CheckText(string text)
         {
             if (text.IsNullOrEmpty() && CancelWhenEmpty) return null;
             else
             {
                 m_isTextChecking = true;
-                if ((AllowedStrings?.Contains(text) ?? false) || (CoerceText?.Invoke(text) ?? true))
+                if ((AllowedStrings?.Contains(text) ?? false) || (TextValidation?.Invoke(text) ?? true))
                 {
                     m_checkedText = text;
                     m_isTextChecking = false;
@@ -193,6 +175,17 @@ namespace BenLib.WPF
                 }
                 else return false;
             }
+        }
+
+        protected virtual void OnIncrement(double value) { }
+
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (e.Property == SBorderBrushProperty) { if (IsMouseOver) bd.BorderBrush = (Brush)e.NewValue; }
+            else if (e.Property == SBackgroundProperty) { if (IsMouseOver) tb.Background = (Brush)e.NewValue; }
+            else if (e.Property == SForegroundProperty) { if (IsMouseOver) tb.Foreground = lb.Foreground = (Brush)e.NewValue; }
+            else if (e.Property == TextProperty) SetText((string)e.NewValue);
+            base.OnPropertyChanged(e);
         }
 
         #endregion
@@ -206,12 +199,50 @@ namespace BenLib.WPF
 
         private void Lbc_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (!Resistant)
+            if (Drag && !IsDragging && e.OnlyPressed(MouseButton.Left))
+            {
+                lbc.CaptureMouse();
+                m_previousPosition = e.GetPosition(lbc);
+                m_clicked = true;
+            }
+        }
+
+        private void Lbc_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (m_clicked)
+            {
+                m_clicked = false;
+                Cursor = Cursors.SizeWE;
+                IsDragging = true;
+            }
+            if (IsDragging)
+            {
+                var position = e.GetPosition(lbc);
+                var offset = position - m_previousPosition;
+                double value = offset.X - offset.Y;
+                DragValue += value;
+                OnIncrement(value);
+                m_previousPosition = position;
+            }
+        }
+
+        private void Lbc_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            m_clicked = false;
+            lbc.ReleaseMouseCapture();
+            if (IsDragging)
+            {
+                Cursor = Cursors.Arrow;
+                DragValue = 0;
+                IsDragging = false;
+            }
+            else if (!Resistant)
             {
                 Activate();
                 e.Handled = true;
             }
         }
+
         private void Lbc_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (Resistant)

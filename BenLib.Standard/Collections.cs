@@ -126,7 +126,7 @@ namespace BenLib.Standard
             {
                 if (item != null)
                 {
-                    item.PropertyChangedExtended += item_PropertyChanged;
+                    item.PropertyChangedExtended += Item_PropertyChanged;
                 }
             }
         }
@@ -137,12 +137,12 @@ namespace BenLib.Standard
             {
                 if (item != null)
                 {
-                    item.PropertyChangedExtended -= item_PropertyChanged;
+                    item.PropertyChangedExtended -= Item_PropertyChanged;
                 }
             }
         }
 
-        private void item_PropertyChanged(object sender, PropertyChangedExtendedEventArgs<T2> e) => ItemChanged?.Invoke(sender, e);
+        private void Item_PropertyChanged(object sender, PropertyChangedExtendedEventArgs<T2> e) => ItemChanged?.Invoke(sender, e);
     }
 
     public partial class Extensions
@@ -220,8 +220,10 @@ namespace BenLib.Standard
 
         public static IEnumerable<T> DynamicCast<T>(this IEnumerable source) { foreach (object current in source) yield return (T)current; }
 
-        public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || !collection.Any();
+        public static bool IsNullOrEmpty<T>(this IEnumerable collection) => collection == null || !collection.GetEnumerator().MoveNext();
+        public static bool IsNullOrEmpty<T>(this ICollection collection) => collection == null || collection.Count == 0;
 
+        public static bool IsNullOrEmpty<T>(this IEnumerable<T> collection) => collection == null || !collection.Any();
         public static bool IsNullOrEmpty<T>(this ICollection<T> collection) => collection == null || collection.Count == 0;
 
         public static bool Contains<T>(this T[] source, T value) => Array.IndexOf(source, value) >= 0;
@@ -555,13 +557,26 @@ namespace BenLib.Standard
             return queue.ToArray();
         }
 
+        public static void RemoveAll<T>(this ICollection<T> source) => source.RemoveAll(item => true);
         public static void RemoveAll<T>(this ICollection<T> source, Predicate<T> match)
         {
             if (source is List<T> list) list.RemoveAll(match);
-            if (source is IList<T> ilist) for (int i = ilist.Count - 1; i >= 0; i--) if (match(ilist[i])) ilist.RemoveAt(i);
-                    else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
+            if (source is IList<T> ilist) { for (int i = ilist.Count - 1; i >= 0; i--) if (match(ilist[i])) ilist.RemoveAt(i); }
+            else foreach (var item in source.ToArray()) if (match(item)) source.Remove(item);
         }
 
+        public static void RemoveAll<T>(this ITree<T> source) => source.RemoveAll(item => true);
+        public static void RemoveAll<T>(this ITree<T> source, Predicate<T> match)
+        {
+            for (int i = source.Nodes.Count - 1; i >= 0; i--)
+            {
+                var node = source.Nodes[i];
+                if (node is ITreeNode<T> treeNode) treeNode.Children.RemoveAll(match);
+                if (match(node)) source.Nodes.RemoveAt(i);
+            }
+        }
+
+        public static void AddRange<T>(this ICollection<T> source, params T[] collection) => source.AddRange(collection as IEnumerable<T>);
         public static void AddRange<T>(this ICollection<T> source, IEnumerable<T> collection)
         {
             if (source is List<T> list) list.AddRange(collection);
@@ -729,16 +744,27 @@ namespace BenLib.Standard
             return new ObservableCollection<T>(li);
         }
 
-        public static IEnumerable<double> Operate(this IEnumerable<double> source, IEnumerable<double> values, Func<double, double, double> operation)
+        public static IEnumerable<T> Operate<T>(this IEnumerable<T> source, IEnumerable<T> values, Func<T, T, T> operation)
         {
             var valuesEnumerator = values.GetEnumerator();
-            foreach (double val in source)
+            foreach (var val in source)
             {
                 valuesEnumerator.MoveNext();
                 yield return operation(val, valuesEnumerator.Current);
             }
         }
-        public static IEnumerable<double> Operate(this IEnumerable<double> source, double value, Func<double, double, double> operation) { foreach (double val in source) yield return operation(val, value); }
+        public static IEnumerable<T> Operate<T>(this IEnumerable<T> source, T value, Func<T, T, T> operation) { foreach (var val in source) yield return operation(val, value); }
+        public static T Operate<T>(this IEnumerable<T> source, Func<T, T, T> operation)
+        {
+            var e = source.GetEnumerator();
+            if (e.MoveNext())
+            {
+                var result = e.Current;
+                while (e.MoveNext()) result = operation(result, e.Current);
+                return result;
+            }
+            return default;
+        }
 
         public static void Enumerate<T>(this IEnumerable<T> source)
         {
@@ -747,6 +773,29 @@ namespace BenLib.Standard
         }
 
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<(TKey key, TValue value)> source) => source.ToDictionary(t => t.key, t => t.value);
+
+        public static void ReplaceAll<T>(this IList<T> source, IEnumerable<T> newContent)
+        {
+            int i = 0;
+            foreach (var item in newContent)
+            {
+                if (source.Count > i) source[i] = item;
+                else source.Add(item);
+                i++;
+            }
+            while (source.Count > i) source.RemoveAt(i);
+        }
+        public static void ReplaceAll<T>(this IList<T> source, IEnumerable<T> newContent, Action<T, T> setter)
+        {
+            int i = 0;
+            foreach (var item in newContent)
+            {
+                if (source.Count > i) setter(source[i], item);
+                else source.Add(item);
+                i++;
+            }
+            while (source.Count > i) source.RemoveAt(i);
+        }
     }
 
     public struct MultiEnumerator<T> : IEnumerator<T>

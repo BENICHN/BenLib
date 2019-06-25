@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using static BenLib.Framework.TimingFramework;
 
 namespace BenLib.Framework
@@ -9,6 +10,14 @@ namespace BenLib.Framework
     public static class ThreadingFramework
     {
         public static MessageBoxResult ShowException(Exception ex) => ex == null ? MessageBoxResult.None : MessageBox.Show(ex.Message, string.Empty, MessageBoxButton.OK, MessageBoxImage.Error);
+
+        public static void SetInterval(Action action, double milliseconds)
+        {
+            var dt = new DispatcherTimer() { Interval = TimeSpan.FromMilliseconds(milliseconds) };
+            dt.Tick += (sender, e) => action();
+
+            dt.Start();
+        }
     }
 
     public static partial class Extensions

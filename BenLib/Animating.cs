@@ -2,8 +2,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -11,13 +14,354 @@ using System.Windows.Media.Animation;
 
 namespace BenLib.Framework
 {
+    internal class IntValueInterpolationHelper : ValueInterpolationHelper<int> { protected override int InterpolateCore(int start, int end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class UIntValueInterpolationHelper : ValueInterpolationHelper<uint> { protected override uint InterpolateCore(uint start, uint end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class LongValueInterpolationHelper : ValueInterpolationHelper<long> { protected override long InterpolateCore(long start, long end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class ULongValueInterpolationHelper : ValueInterpolationHelper<ulong> { protected override ulong InterpolateCore(ulong start, ulong end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class ShortValueInterpolationHelper : ValueInterpolationHelper<short> { protected override short InterpolateCore(short start, short end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class UShortValueInterpolationHelper : ValueInterpolationHelper<ushort> { protected override ushort InterpolateCore(ushort start, ushort end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class ByteValueInterpolationHelper : ValueInterpolationHelper<byte> { protected override byte InterpolateCore(byte start, byte end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class SByteValueInterpolationHelper : ValueInterpolationHelper<sbyte> { protected override sbyte InterpolateCore(sbyte start, sbyte end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class FloatValueInterpolationHelper : ValueInterpolationHelper<float> { protected override float InterpolateCore(float start, float end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class DoubleValueInterpolationHelper : ValueInterpolationHelper<double> { protected override double InterpolateCore(double start, double end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class DecimalValueInterpolationHelper : ValueInterpolationHelper<decimal> { protected override decimal InterpolateCore(decimal start, decimal end, double progress) => Num.Interpolate(start, end, progress); }
+    internal class ColorValueInterpolationHelper : ValueInterpolationHelper<Color> { protected override Color InterpolateCore(Color start, Color end, double progress) => NumFramework.Interpolate(start, end, progress); }
+    internal class PointValueInterpolationHelper : ValueInterpolationHelper<Point> { protected override Point InterpolateCore(Point start, Point end, double progress) => NumFramework.Interpolate(start, end, progress); }
+    internal class VectorValueInterpolationHelper : ValueInterpolationHelper<Vector> { protected override Vector InterpolateCore(Vector start, Vector end, double progress) => NumFramework.Interpolate(start, end, progress); }
+    internal class SizeValueInterpolationHelper : ValueInterpolationHelper<Size> { protected override Size InterpolateCore(Size start, Size end, double progress) => NumFramework.Interpolate(start, end, progress); }
+    internal class RectValueInterpolationHelper : ValueInterpolationHelper<Rect> { protected override Rect InterpolateCore(Rect start, Rect end, double progress) => NumFramework.Interpolate(start, end, progress); }
+
+    public class ValueInterpolationHelper<T>
+    {
+        private static ValueInterpolationHelper<T> m_default;
+        public static ValueInterpolationHelper<T> Default { get => m_default ?? CreateDefault(); set => m_default = value; }
+
+        public T Interpolate(T start, T end, double progress) => progress switch
+        {
+            0.0 => start,
+            1.0 => end,
+            _ => InterpolateCore(start, end, progress)
+        };
+        protected virtual T InterpolateCore(T start, T end, double progress) => progress < 1.0 ? start : end;
+
+        public T Iterate(T value, T start, T end, long iterationsCount) => Interpolate(Interpolate(default, value, 2), Interpolate(start, end, 2 * iterationsCount), 0.5);
+
+        private static ValueInterpolationHelper<T> CreateDefault()
+        {
+            var t = typeof(T);
+            RuntimeHelpers.RunClassConstructor(t.TypeHandle);
+            return m_default ?? (ValueInterpolationHelper<T>)(
+                t == typeof(int) ? new IntValueInterpolationHelper() :
+                t == typeof(uint) ? new UIntValueInterpolationHelper() :
+                t == typeof(long) ? new LongValueInterpolationHelper() :
+                t == typeof(ulong) ? new ULongValueInterpolationHelper() :
+                t == typeof(short) ? new ShortValueInterpolationHelper() :
+                t == typeof(ushort) ? new UShortValueInterpolationHelper() :
+                t == typeof(byte) ? new ByteValueInterpolationHelper() :
+                t == typeof(sbyte) ? new SByteValueInterpolationHelper() :
+                t == typeof(float) ? new FloatValueInterpolationHelper() :
+                t == typeof(double) ? new DoubleValueInterpolationHelper() :
+                t == typeof(decimal) ? new DecimalValueInterpolationHelper() :
+                t == typeof(Color) ? new ColorValueInterpolationHelper() :
+                t == typeof(Point) ? new PointValueInterpolationHelper() :
+                t == typeof(Vector) ? new VectorValueInterpolationHelper() :
+                t == typeof(Size) ? new SizeValueInterpolationHelper() :
+                t == typeof(Rect) ? new RectValueInterpolationHelper() :
+                (object)new ValueInterpolationHelper<T>());
+        }
+    }
+
+    public class EasingKeyFrame<T> : KeyFrame<T>
+    {
+        public IEasingFunction EasingFunction { get => (IEasingFunction)GetValue(EasingFunctionProperty); set => SetValue(EasingFunctionProperty, value); }
+        public static readonly DependencyProperty EasingFunctionProperty = DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(EasingKeyFrame<T>));
+        protected override Freezable CreateInstanceCore() => new EasingKeyFrame<T>();
+        protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, EasingFunction?.Ease(keyFrameProgress) ?? keyFrameProgress);
+    }
+
+    public class SplineKeyFrame<T> : KeyFrame<T>
+    {
+        public KeySpline KeySpline { get => (KeySpline)GetValue(KeySplineProperty); set => SetValue(KeySplineProperty, value); }
+        public static readonly DependencyProperty KeySplineProperty = DependencyProperty.Register("KeySpline", typeof(KeySpline), typeof(SplineKeyFrame<T>), new PropertyMetadata(new KeySpline()), v => v != null);
+
+        protected override Freezable CreateInstanceCore() => new SplineKeyFrame<T>();
+        protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, KeySpline.GetSplineProgress(keyFrameProgress));
+    }
+
+    public class LinearKeyFrame<T> : KeyFrame<T>
+    {
+        protected override Freezable CreateInstanceCore() => new LinearKeyFrame<T>();
+        protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, keyFrameProgress);
+    }
+
+    public class DiscreteKeyFrame<T> : KeyFrame<T>
+    {
+        protected override Freezable CreateInstanceCore() => new DiscreteKeyFrame<T>();
+        protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => baseValue;
+    }
+
+    public abstract class KeyFrame<T> : Freezable, IKeyFrame
+    {
+        public KeyTime KeyTime { get => (KeyTime)GetValue(KeyTimeProperty); set => SetValue(KeyTimeProperty, value); }
+        public static readonly DependencyProperty KeyTimeProperty = DependencyProperty.Register("KeyTime", typeof(KeyTime), typeof(KeyFrame<T>), new PropertyMetadata(KeyTime.Uniform));
+
+        object IKeyFrame.Value { get => GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
+        public T Value { get => (T)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
+        public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(T), typeof(KeyFrame<T>));
+
+        public T InterpolateValue(T baseValue, double keyFrameProgress)
+        {
+            if (keyFrameProgress < 0.0 || keyFrameProgress > 1.0) throw new ArgumentOutOfRangeException("keyFrameProgress");
+            return keyFrameProgress switch
+            {
+                0.0 => baseValue,
+                1.0 => Value,
+                _ => InterpolateValueCore(baseValue, keyFrameProgress)
+            };
+        }
+
+        protected abstract T InterpolateValueCore(T baseValue, double keyFrameProgress);
+    }
+
+    public class EasingAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
+    {
+        public IEasingFunction EasingFunction { get => (IEasingFunction)GetValue(EasingFunctionProperty); set => SetValue(EasingFunctionProperty, value); }
+        public static readonly DependencyProperty EasingFunctionProperty = DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(EasingKeyFrame<T>));
+
+        protected override Freezable CreateInstanceCore() => new EasingAbsoluteKeyFrame<T>();
+        public override double EaseProgress(double keyFrameProgress) => EasingFunction?.Ease(keyFrameProgress) ?? keyFrameProgress;
+    }
+
+    public class SplineAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
+    {
+        public KeySpline KeySpline { get => (KeySpline)GetValue(KeySplineProperty); set => SetValue(KeySplineProperty, value); }
+        public static readonly DependencyProperty KeySplineProperty = DependencyProperty.Register("KeySpline", typeof(KeySpline), typeof(SplineKeyFrame<T>), new PropertyMetadata(new KeySpline()), v => v != null);
+
+        protected override Freezable CreateInstanceCore() => new SplineAbsoluteKeyFrame<T>();
+        public override double EaseProgress(double keyFrameProgress) => KeySpline?.GetSplineProgress(keyFrameProgress) ?? keyFrameProgress;
+    }
+
+    public class LinearAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
+    {
+        protected override Freezable CreateInstanceCore() => new LinearAbsoluteKeyFrame<T>();
+    }
+
+    public class DiscreteAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
+    {
+        protected override Freezable CreateInstanceCore() => new DiscreteAbsoluteKeyFrame<T>();
+        public override double EaseProgress(double keyFrameProgress) => Math.Truncate(keyFrameProgress);
+    }
+
+    public interface IAbsoluteKeyFrame
+    {
+        long FramesCount { get; set; }
+        object Value { get; set; }
+    }
+
+    public abstract class AbsoluteKeyFrame<T> : Freezable, IAbsoluteKeyFrame
+    {
+        public const long FPS = 60;
+
+        public long FramesCount { get => (long)GetValue(FramesCountProperty); set => SetValue(FramesCountProperty, value); }
+        public static readonly DependencyProperty FramesCountProperty = DependencyProperty.Register("FramesCount", typeof(long), typeof(AbsoluteKeyFrame<T>));
+        public event PropertyChangedExtendedEventHandler<long> FramesCountChanged;
+
+        object IAbsoluteKeyFrame.Value { get => GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
+        public T Value { get => (T)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
+        public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(T), typeof(AbsoluteKeyFrame<T>));
+        public event PropertyChangedExtendedEventHandler<T> ValueChanged;
+
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (e.Property == FramesCountProperty) FramesCountChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<long>("FramesCount", (long)e.OldValue, (long)e.NewValue));
+            else if (e.Property == ValueProperty) ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<T>("Value", (T)e.OldValue, (T)e.NewValue));
+            base.OnPropertyChanged(e);
+        }
+
+        public T InterpolateValue(T baseValue, double keyFrameProgress)
+        {
+            if (keyFrameProgress < 0.0 || keyFrameProgress > 1.0) throw new ArgumentOutOfRangeException("keyFrameProgress");
+            return keyFrameProgress switch
+            {
+                0.0 => baseValue,
+                1.0 => Value,
+                _ => InterpolateValueCore(baseValue, keyFrameProgress)
+            };
+        }
+
+        public virtual double EaseProgress(double keyFrameProgress) => keyFrameProgress;
+        protected virtual T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, EaseProgress(keyFrameProgress));
+    }
+
+    public class KeySpline : Freezable
+    {
+        private (double cx, double cy)[] m_tcoefs = new[] { (-2.0, -2.0), (3.0, 3.0), (0.0, 0.0), (0.0, 0.0) };
+
+        public Point ControlPoint1 { get => (Point)GetValue(ControlPoint1Property); set => SetValue(ControlPoint1Property, value); }
+        public static readonly DependencyProperty ControlPoint1Property = DependencyProperty.Register("ControlPoint1", typeof(Point), typeof(KeySpline), new PropertyMetadata(new Point(0, 0)));
+
+        public Point ControlPoint2 { get => (Point)GetValue(ControlPoint2Property); set => SetValue(ControlPoint2Property, value); }
+        public static readonly DependencyProperty ControlPoint2Property = DependencyProperty.Register("ControlPoint2", typeof(Point), typeof(KeySpline), new PropertyMetadata(new Point(1, 1)));
+
+        public double GetSplineProgress(double linearProgress)
+        {
+            var tcoefs = m_tcoefs;
+            var (a, b, c, d) = (tcoefs[0].cx, tcoefs[1].cx, tcoefs[2].cx, tcoefs[3].cx);
+            var (t0, t1, t2) = MathNet.Numerics.RootFinding.Cubic.RealRoots((d - linearProgress) / a, c / a, b / a);
+            double t = rootValid(t0) ? t0 : rootValid(t1) ? t1 : rootValid(t2) ? t2 : double.NaN;
+            return Num.GetBezierPointFromTCoefs(t, tcoefs).y;
+            static bool rootValid(double x) => 0 <= x && x <= 1;
+        }
+
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        {
+            if (e.Property == ControlPoint1Property || e.Property == ControlPoint2Property)
+            {
+                var cp1 = ControlPoint1;
+                var cp2 = ControlPoint2;
+                m_tcoefs = Num.GetTCoefs((0, 0), (cp1.X, cp1.Y), (cp2.X, cp2.Y), (1, 1));
+            }
+            base.OnPropertyChanged(e);
+        }
+
+        protected override Freezable CreateInstanceCore() => new KeySpline();
+    }
+
+    public interface IAbsoluteKeyFrameCollection : IList, INotifyCollectionChanged
+    {
+        event EventHandler Changed;
+        int IndexOfKeyFrameAt(long framesCount);
+        double ProgressAt(long framesCount, bool ease);
+        double ProgressAt(int index, double framesCount, bool ease);
+        object ValueAt(long framesCount);
+        void RemoveKeyFrameAt(long framesCount);
+        void PutKeyFrame(IAbsoluteKeyFrame keyFrame);
+    }
+
+    public class AbsoluteKeyFrameCollection<T> : ObservableCollection<AbsoluteKeyFrame<T>>, IAbsoluteKeyFrameCollection
+    {
+        public event EventHandler Changed;
+
+        private int GetNewIndex(AbsoluteKeyFrame<T> item)
+        {
+            long framesCount = item.FramesCount;
+            int i = Items.IndexOf(kf => kf.FramesCount >= framesCount);
+            return i == -1 ? Count : i;
+        }
+
+        private void UpdateKeyFramePosition(AbsoluteKeyFrame<T> item) => UpdateKeyFramePosition(IndexOf(item), item);
+        private void UpdateKeyFramePosition(int index, AbsoluteKeyFrame<T> item)
+        {
+            if (index > 0 && item.FramesCount < Items[index - 1].FramesCount) Move(index, index - 1);
+            else if (index < Count - 1 && item.FramesCount > Items[index + 1].FramesCount) Move(index, index + 1);
+        }
+
+        private void Register(AbsoluteKeyFrame<T> item)
+        {
+            item.FramesCountChanged += Item_FramesCountChanged;
+            item.Changed += Item_Changed;
+        }
+        private void UnRegister(AbsoluteKeyFrame<T> item)
+        {
+            item.FramesCountChanged -= Item_FramesCountChanged;
+            item.Changed -= Item_Changed;
+        }
+
+        private void Item_Changed(object sender, EventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
+
+        public int IndexOfKeyFrameAt(long framesCount)
+        {
+            int i = Items.IndexOf(kf => kf.FramesCount >= framesCount);
+            return i == -1 ? Count : i;
+        }
+
+        public double ProgressAt(long framesCount, bool ease) => ProgressAt(IndexOfKeyFrameAt(framesCount), framesCount, ease);
+        public double ProgressAt(int index, double framesCount, bool ease)
+        {
+            if (index == 0) return 1;
+            if (index == Count) return 0;
+            var currentKeyFrame = Items[index];
+            long previousFramesCount = Items[index - 1].FramesCount;
+            double linearProgress = (framesCount - previousFramesCount) / (currentKeyFrame.FramesCount - previousFramesCount);
+            return ease ? currentKeyFrame.EaseProgress(linearProgress) : linearProgress;
+        }
+        private double ProgressAt(int index, long framesCount, bool ease)
+        {
+            if (index == 0) return 1;
+            if (index == Count) return 0;
+            var currentKeyFrame = Items[index];
+            long previousFramesCount = Items[index - 1].FramesCount;
+            double linearProgress = (double)(framesCount - previousFramesCount) / (currentKeyFrame.FramesCount - previousFramesCount);
+            return ease ? currentKeyFrame.EaseProgress(linearProgress) : linearProgress;
+        }
+
+        object IAbsoluteKeyFrameCollection.ValueAt(long framesCount) => ValueAt(framesCount);
+        public T ValueAt(long framesCount)
+        {
+            int i = IndexOfKeyFrameAt(framesCount);
+            return
+                i == 0 ? Items.First().Value :
+                i == Count ? Items.Last().Value :
+                Items[i].InterpolateValue(Items[i - 1].Value, ProgressAt(i, framesCount, false));
+        }
+
+        public void RemoveKeyFrameAt(long framesCount) => PutKeyFrame(framesCount, null);
+
+        void IAbsoluteKeyFrameCollection.PutKeyFrame(IAbsoluteKeyFrame keyFrame) { if (keyFrame is AbsoluteKeyFrame<T> absoluteKeyFrame) PutKeyFrame(absoluteKeyFrame); }
+        public void PutKeyFrame(AbsoluteKeyFrame<T> keyFrame) { if (keyFrame != null) PutKeyFrame(keyFrame.FramesCount, keyFrame); }
+        private void PutKeyFrame(long framesCount, AbsoluteKeyFrame<T> keyFrame)
+        {
+            int index = Items.IndexOf(kf => kf.FramesCount == framesCount);
+            if (index == -1) Add(keyFrame);
+            else this[index] = keyFrame;
+        }
+
+        private void Item_FramesCountChanged(object sender, PropertyChangedExtendedEventArgs<long> e) => UpdateKeyFramePosition((AbsoluteKeyFrame<T>)sender);
+
+        protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            base.OnCollectionChanged(e);
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected override void ClearItems()
+        {
+            foreach (var item in Items) UnRegister(item);
+            base.ClearItems();
+        }
+        protected override void InsertItem(int index, AbsoluteKeyFrame<T> item)
+        {
+            if (item != null)
+            {
+                Register(item);
+                base.InsertItem(GetNewIndex(item), item);
+            }
+        }
+        protected override void RemoveItem(int index)
+        {
+            UnRegister(Items[index]);
+            base.RemoveItem(index);
+        }
+        protected override void SetItem(int index, AbsoluteKeyFrame<T> item)
+        {
+            if (item == null) RemoveAt(index);
+            else
+            {
+                UnRegister(Items[index]);
+                Register(item);
+                base.SetItem(index, item);
+                UpdateKeyFramePosition(index, item);
+            }
+        }
+    }
+
     public static class Animating
     {
         public static Dictionary<string, StaticAnimation> Animations { get; } = new Dictionary<string, StaticAnimation>();
 
         #region DoubleAnimation
 
-        public static async Task AnimateDouble(string name, Action<double> setter, double from, double to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
+        public static async Task Animate<T>(string name, Action<T> setter, T from, T to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
         {
             bool finished = false;
             var tcs = new TaskCompletionSource<object>();
@@ -39,10 +383,6 @@ namespace BenLib.Framework
             else totalDuration = TimeSpan.MaxValue;
 
             double totalMilliseconds = totalDuration.TotalMilliseconds;
-
-            //=============================================================================================
-            double diff = to - from;
-            //=============================================================================================
 
             if (name != null) animation.StateChanged += StateChanged;
 
@@ -76,12 +416,7 @@ namespace BenLib.Framework
                 double baseProgress = Math.Min(currentMilliseconds / durationMilliseconds, 1);
                 double progress = easingFunction?.Ease(baseProgress) ?? baseProgress;
 
-                //=============================================================================================
-                double value = from + diff * progress;
-                if (isCumulative) value += diff * iterationsCount;
-
-                setter(value);
-                //=============================================================================================
+                setter(ValueInterpolationHelper<T>.Default.Interpolate(from, to, isCumulative ? iterationsCount + progress : progress));
 
                 frameStopwatch?.Spend();
 
@@ -121,7 +456,7 @@ namespace BenLib.Framework
             await tcs.Task;
         }
 
-        public static async Task AnimateDoubleArray(string name, Action<double[]> setter, IList<double> from, IList<double> to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
+        public static async Task AnimateArray<T>(string name, Action<T[]> setter, IList<T> from, IList<T> to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
         {
             if (from.Count != to.Count) return;
 
@@ -146,12 +481,7 @@ namespace BenLib.Framework
 
             double totalMilliseconds = totalDuration.TotalMilliseconds;
 
-            //=============================================================================================
             int count = from.Count;
-            double[] diff = new double[count];
-
-            for (int i = 0; i < count; i++) diff[i] = to[i] - from[i];
-            //=============================================================================================
 
             if (name != null) animation.StateChanged += StateChanged;
 
@@ -185,19 +515,10 @@ namespace BenLib.Framework
                 double baseProgress = Math.Min(currentMilliseconds / durationMilliseconds, 1);
                 double progress = easingFunction?.Ease(baseProgress) ?? baseProgress;
 
-                //=============================================================================================
-                double[] value = new double[count];
-                for (int i = 0; i < count; i++)
-                {
-                    double dif = diff[i];
-                    double val = from[i] + dif * progress;
-                    if (isCumulative) val += dif * iterationsCount;
-
-                    value[i] = val;
-                }
+                var value = new T[count];
+                for (int i = 0; i < count; i++) value[i] = ValueInterpolationHelper<T>.Default.Interpolate(from[i], to[i], isCumulative ? progress + iterationsCount : progress);
 
                 setter(value);
-                //=============================================================================================
 
                 frameStopwatch?.Spend();
 
@@ -237,7 +558,7 @@ namespace BenLib.Framework
             await tcs.Task;
         }
 
-        public static async Task AnimateDoubleUsingKeyFrames(string name, Action<double> setter, double from, IEnumerable<DoubleKeyFrame> keyFrames, Duration duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, int? fps = null)
+        public static async Task AnimateUsingKeyFrames<T>(string name, Action<T> setter, T from, IEnumerable<KeyFrame<T>> keyFrames, Duration duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, int? fps = null)
         {
             bool finished = false;
             var tcs = new TaskCompletionSource<object>();
@@ -253,14 +574,8 @@ namespace BenLib.Framework
 
             var resolvedKeyFrames = ResolveKeyTimes(keyFrames, duration, out var durationTime);
 
-            //=============================================================================================
-            double diff = resolvedKeyFrames[resolvedKeyFrames.Length - 1].Value - resolvedKeyFrames[0].Value;
-            //=============================================================================================
-
-            TimeSpan totalDuration;
-            if (repeatBehavior.HasCount) totalDuration = repeatBehavior.Count == 0 ? durationTime : durationTime.Multiply(repeatBehavior.Count);
-            else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
-            else totalDuration = TimeSpan.MaxValue;
+            var totalDuration = repeatBehavior.HasCount ? repeatBehavior.Count == 0 ? durationTime : durationTime.Multiply(repeatBehavior.Count) :
+                repeatBehavior.HasDuration ? repeatBehavior.Duration : TimeSpan.MaxValue;
 
             if (name != null) animation.StateChanged += StateChanged;
 
@@ -292,7 +607,7 @@ namespace BenLib.Framework
 
                 int maxKeyFrameIndex = resolvedKeyFrames.Length - 1;
                 int currentKeyFrameIndex = 0;
-                double currentKeyFrameValue;
+                T currentKeyFrameValue;
 
                 while (currentKeyFrameIndex < resolvedKeyFrames.Length && currentTime > resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameIndex++;
                 while (currentKeyFrameIndex < maxKeyFrameIndex && currentTime == resolvedKeyFrames[currentKeyFrameIndex + 1].KeyTime.TimeSpan) currentKeyFrameIndex++;
@@ -301,7 +616,7 @@ namespace BenLib.Framework
                 else if (currentTime == resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].Value;
                 else
                 {
-                    double fromValue;
+                    T fromValue;
                     double currentSegmentProgress;
 
                     if (currentKeyFrameIndex == 0)
@@ -325,11 +640,9 @@ namespace BenLib.Framework
                     currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].InterpolateValue(fromValue, Math.Min(currentSegmentProgress, 1));
                 }
 
-                //=============================================================================================
-                if (isCumulative) currentKeyFrameValue += diff * iterationsCount;
+                if (isCumulative) currentKeyFrameValue = ValueInterpolationHelper<T>.Default.Iterate(currentKeyFrameValue, resolvedKeyFrames[0].Value, resolvedKeyFrames.Last().Value, iterationsCount);
 
                 setter(currentKeyFrameValue);
-                //=============================================================================================
 
                 frameStopwatch?.Spend();
 
@@ -368,6 +681,48 @@ namespace BenLib.Framework
             stopwatch?.Start();
             await tcs.Task;
         }
+
+        /*public static T GetValue<T>(FrameStopwatch current, KeyFrame<T>[] resolvedKeyFrames) => GetValue(current, resolvedKeyFrames[0].Value, resolvedKeyFrames);
+        public static T GetValue<T>(FrameStopwatch current, T from, KeyFrame<T>[] resolvedKeyFrames)
+        {
+            var currentTime = current.Elapsed;
+            int maxKeyFrameIndex = resolvedKeyFrames.Length - 1;
+            int currentKeyFrameIndex = 0;
+            T currentKeyFrameValue;
+
+            while (currentKeyFrameIndex < resolvedKeyFrames.Length && currentTime > resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameIndex++;
+            while (currentKeyFrameIndex < maxKeyFrameIndex && currentTime == resolvedKeyFrames[currentKeyFrameIndex + 1].KeyTime.TimeSpan) currentKeyFrameIndex++;
+
+            if (currentKeyFrameIndex == resolvedKeyFrames.Length) currentKeyFrameValue = resolvedKeyFrames[maxKeyFrameIndex].Value;
+            else if (currentTime == resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].Value;
+            else
+            {
+                T fromValue;
+                double currentSegmentProgress;
+
+                if (currentKeyFrameIndex == 0)
+                {
+                    fromValue = from;
+                    currentSegmentProgress = currentTime.TotalMilliseconds / resolvedKeyFrames[0].KeyTime.TimeSpan.TotalMilliseconds;
+                }
+                else
+                {
+                    int previousKeyFrameIndex = currentKeyFrameIndex - 1;
+                    var previousKeyTime = resolvedKeyFrames[previousKeyFrameIndex].KeyTime.TimeSpan;
+
+                    fromValue = resolvedKeyFrames[previousKeyFrameIndex].Value;
+
+                    var segmentCurrentTime = currentTime - previousKeyTime;
+                    var segmentDuration = resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan - previousKeyTime;
+
+                    currentSegmentProgress = segmentCurrentTime.TotalMilliseconds / segmentDuration.TotalMilliseconds;
+                }
+
+                currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].InterpolateValue(fromValue, Math.Min(currentSegmentProgress, 1));
+            }
+
+            return currentKeyFrameValue;
+        }*/
 
         #endregion
 

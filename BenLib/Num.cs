@@ -23,7 +23,7 @@ namespace BenLib.Framework
             var from = start ?? new Pen(Brushes.Transparent, 0);
             var to = end ?? new Pen(Brushes.Transparent, 0);
             var brush = Interpolate(from.Brush, to.Brush, progress);
-            return brush != null ? new Pen(brush, Standard.Num.Interpolate(from.Thickness, to.Thickness, progress)) : null;
+            return brush != null ? new Pen(brush, Num.Interpolate(from.Thickness, to.Thickness, progress)) : null;
         }
         public static IEnumerable<Pen> Interpolate(IList<Pen> start, IList<Pen> end, double progress)
         {
@@ -38,7 +38,7 @@ namespace BenLib.Framework
             var from = start ?? Brushes.Transparent;
             var to = end ?? Brushes.Transparent;
             return from is SolidColorBrush fromC && to is SolidColorBrush toC
-                ? new SolidColorBrush(Interpolate(fromC.Color, toC.Color, progress)) { Opacity = Standard.Num.Interpolate(from.Opacity, to.Opacity, progress) }
+                ? new SolidColorBrush(Interpolate(fromC.Color, toC.Color, progress)) { Opacity = Num.Interpolate(from.Opacity, to.Opacity, progress) }
                 : null;
         }
         public static IEnumerable<Brush> Interpolate(IList<Brush> start, IList<Brush> end, double progress)
@@ -49,7 +49,7 @@ namespace BenLib.Framework
             }
         }
 
-        public static Point Interpolate(Point start, Point end, double progress) => new Point(Standard.Num.Interpolate(start.X, end.X, progress), Standard.Num.Interpolate(start.Y, end.Y, progress));
+        public static Point Interpolate(Point start, Point end, double progress) => new Point(Num.Interpolate(start.X, end.X, progress), Num.Interpolate(start.Y, end.Y, progress));
         public static IEnumerable<Point> Interpolate(IList<Point> start, IList<Point> end, double progress)
         {
             foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
@@ -58,7 +58,7 @@ namespace BenLib.Framework
             }
         }
 
-        public static Vector Interpolate(Vector start, Vector end, double progress) => new Vector(Standard.Num.Interpolate(start.X, end.X, progress), Standard.Num.Interpolate(start.Y, end.Y, progress));
+        public static Vector Interpolate(Vector start, Vector end, double progress) => new Vector(Num.Interpolate(start.X, end.X, progress), Num.Interpolate(start.Y, end.Y, progress));
         public static IEnumerable<Vector> Interpolate(IList<Vector> start, IList<Vector> end, double progress)
         {
             foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
@@ -67,8 +67,17 @@ namespace BenLib.Framework
             }
         }
 
-        public static Size Interpolate(Size start, Size end, double progress) => new Size(Standard.Num.Interpolate(start.Width, end.Width, progress), Standard.Num.Interpolate(start.Height, end.Height, progress));
+        public static Size Interpolate(Size start, Size end, double progress) => new Size(Num.Interpolate(start.Width, end.Width, progress), Num.Interpolate(start.Height, end.Height, progress));
         public static IEnumerable<Size> Interpolate(IList<Size> start, IList<Size> end, double progress)
+        {
+            foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
+            {
+                yield return Interpolate(from, to, progress);
+            }
+        }
+
+        public static Rect Interpolate(Rect start, Rect end, double progress) => new Rect(Interpolate(start.TopLeft, end.TopLeft, progress), Interpolate(start.BottomRight, end.BottomRight, progress));
+        public static IEnumerable<Rect> Interpolate(IList<Rect> start, IList<Rect> end, double progress)
         {
             foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
             {

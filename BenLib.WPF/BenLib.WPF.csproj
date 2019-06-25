@@ -78,6 +78,7 @@
     <Compile Include="FlatBrushes.cs" />
     <Compile Include="GeometryHelper.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="NumbersEditors.cs" />
     <Compile Include="MessageBoxManager.cs" />
     <Compile Include="Misc.cs" />
     <Compile Include="Extensions\GrabAnywhere.cs" />
@@ -126,5 +127,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

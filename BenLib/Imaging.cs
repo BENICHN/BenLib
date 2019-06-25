@@ -7,6 +7,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Color = System.Windows.Media.Color;
 
 namespace BenLib.Framework
 {
@@ -281,7 +282,7 @@ namespace BenLib.Framework
                 }
             };
 
-            [StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
             public struct SHSTOCKICONINFO
             {
                 public uint cbSize;
@@ -592,6 +593,87 @@ namespace BenLib.Framework
 
             #endregion
         }
+
+        public static Color ColorFromHSB(double hue, double saturation, double brightness)
+        {
+            var (r, g, b) = FromHSB(hue, saturation, brightness);
+            return Color.FromRgb(r, g, b);
+        }
+
+        public static (byte r, byte g, byte b) FromHSB(double hue, double saturation, double brightness)
+        {
+            double c = brightness * saturation;
+            double h = hue / 60;
+            double x = c * (1 - Math.Abs(h % 2 - 1));
+
+            var (r, g, b) =
+            (0 <= h && h < 1) ? (c, x, 0.0) :
+            (1 <= h && h < 2) ? (x, c, 0.0) :
+            (2 <= h && h < 3) ? (0.0, c, x) :
+            (3 <= h && h < 4) ? (0.0, x, c) :
+            (4 <= h && h < 5) ? (x, 0.0, c) :
+            (5 <= h && h < 6) ? (c, 0.0, x) :
+            (0.0, 0.0, 0.0);
+
+            double m = brightness - c;
+            return ((byte)((r + m) * 255), (byte)((g + m) * 255), (byte)((b + m) * 255));
+        }
+
+        public static BitmapSource PixelByPixel(int width, int height, Func<int, int, (byte r, byte g, byte b)> selector)
+        {
+            var pf = PixelFormats.Bgra32;
+            int rawStride = (width * pf.BitsPerPixel + 7) / 8;
+            byte[] rawImage = new byte[rawStride * height];
+
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < rawStride; j += 4)
+                {
+                    var (r, g, b) = selector(i, j / 4);
+                    rawImage[i * rawStride + j] = b;
+                    rawImage[i * rawStride + j + 1] = g;
+                    rawImage[i * rawStride + j + 2] = r;
+                    rawImage[i * rawStride + j + 3] = byte.MaxValue;
+                }
+            }
+
+            return BitmapSource.Create(width, height, 96, 96, pf, null, rawImage, rawStride);
+        }
+
+        public static BitmapSource LineByline(int width, int height, Func<int, (byte r, byte g, byte b)> selector)
+        {
+            var pf = PixelFormats.Bgra32;
+            int rawStride = (width * pf.BitsPerPixel + 7) / 8;
+            byte[] rawImage = new byte[rawStride * height];
+
+            for (int i = 0; i < height; i++)
+            {
+                var (r, g, b) = selector(i);
+                for (int j = 0; j < rawStride; j += 4)
+                {
+                    rawImage[i * rawStride + j] = b;
+                    rawImage[i * rawStride + j + 1] = g;
+                    rawImage[i * rawStride + j + 2] = r;
+                    rawImage[i * rawStride + j + 3] = byte.MaxValue;
+                }
+            }
+
+            return BitmapSource.Create(width, height, 96, 96, pf, null, rawImage, rawStride);
+        }
+
+        public static Color ColorFromHex(uint hex)
+        {
+            byte a = (byte)(hex / 0x1000000);
+            hex -= (uint)a * 0x1000000;
+            byte r = (byte)(hex / 0x10000);
+            hex -= (uint)r * 0x10000;
+            byte g = (byte)(hex / 0x100);
+            hex -= (uint)g * 0x100;
+            byte b = (byte)hex;
+            return Color.FromArgb(a, r, g, b);
+        }
+
+        public static SolidColorBrush BrushFromHex(uint hex) => new SolidColorBrush(ColorFromHex(hex));
     }
 
     public static partial class Extensions
@@ -612,16 +694,30 @@ namespace BenLib.Framework
             return bmp;
         }
 
-        public static System.Windows.Media.Color ToMediaColor(this System.Drawing.Color color) => System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+        public static Color ToMediaColor(this System.Drawing.Color color) => Color.FromArgb(color.A, color.R, color.G, color.B);
 
-        public static System.Drawing.Color ToDrawingColor(this System.Windows.Media.Color color) => System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
+        public static System.Drawing.Color ToDrawingColor(this Color color) => System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
 
-        public static string ToHex(this System.Drawing.Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        //public static string ToHex(this System.Drawing.Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
-        public static string ToRGB(this System.Drawing.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
+        //public static string ToRGB(this System.Drawing.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
 
-        public static string ToHex(this System.Windows.Media.Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        public static string ToHex(this Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
-        public static string ToRGB(this System.Windows.Media.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
+        public static string ToRGB(this Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
+
+        public static (double Hue, double Saturation, double Brightness) HSB(this Color color)
+        {
+            var (r, g, b) = ((double)color.R / 255, (double)color.G / 255, (double)color.B / 255);
+            double max = Math.Max(r, Math.Max(g, b));
+            double min = Math.Min(r, Math.Min(g, b));
+            double c = max - min;
+            double h =
+                max == r ? (g - b) / c % 6 :
+                max == g ? ((b - r) / c + 2) % 6 :
+                max == b ? ((r - g) / c + 4) % 6 :
+                double.NaN;
+            return (h * 60, max == 0 ? 0 : c / max, max);
+        }
     }
 }

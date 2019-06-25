@@ -312,6 +312,119 @@ namespace BenLib.Standard
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
+    public class TypeTree : Tree<TypeNode>
+    {
+        public TypeTree() { }
+        public TypeTree(List<TypeNode> nodes) : base(nodes) { }
+        public TypeTree(int capacity) : base(capacity) { }
+        public TypeTree(IEnumerable<TypeNode> items) : base(items) { }
+        public TypeTree(params TypeNode[] items) : base(items) { }
+
+        public TypeTree(IEnumerable<Type> items) { foreach (var type in items) Add(type); }
+
+        public TypeNode this[Type type]
+        {
+            get
+            {
+                if (type.IsInterface) return new TypeNode(type, new TypeTree(InterfaceImplementations(type)));
+                if (type.IsGenericType)
+                {
+                    var args = type.GenericTypeArguments;
+                    if (args.Length > 0)
+                    {
+                        var node = this[type.GetGenericTypeDefinition()];
+                        return MakeGenericNode(node, args);
+                    }
+
+                    static TypeNode MakeGenericNode(TypeNode node, Type[] args) => new TypeNode(node.Type.MakeGenericType(args), new TypeTree(node.DerivedTypes.Nodes.Select(n => MakeGenericNode(n, args))));
+                }
+
+                TypeNode currentNode = null;
+                var currentTree = this;
+                foreach (var baseType in type.BaseTypes().Append(type))
+                {
+                    int index = currentTree.Nodes.IndexOf(node => node.Type == baseType);
+                    if (index == -1) throw new ArgumentException();
+                    else
+                    {
+                        currentNode = currentTree.Nodes[index];
+                        currentTree = currentNode.DerivedTypes;
+                    }
+                }
+
+                return currentNode;
+            }
+        }
+
+        private IEnumerable<TypeNode> InterfaceImplementations(Type interfaceType)
+        {
+            foreach (var node in Nodes)
+            {
+                if (node.Interfaces != null && node.Interfaces.Contains(interfaceType)) yield return node;
+                else foreach (var n in node.DerivedTypes.InterfaceImplementations(interfaceType)) yield return n;
+            }
+        }
+
+        public bool Contains(Type type) { try { _ = this[type]; return true; } catch (ArgumentException) { return false; } }
+        public bool TryGetValue(Type type, out TypeNode result)
+        {
+            try
+            {
+                result = this[type];
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                result = null;
+                return false;
+            }
+        }
+
+        public void Add(Type type)
+        {
+            if (type.IsInterface) return;
+
+            TypeNode currentNode = null;
+            var currentTree = this;
+            foreach (var baseType in type.BaseTypes().Append(type))
+            {
+                var currentType = baseType.IsGenericType ? baseType.GetGenericTypeDefinition() : baseType;
+
+                int index = currentTree.Nodes.IndexOf(node => node.Type == currentType);
+                if (index == -1)
+                {
+                    currentNode = new TypeNode(currentType);
+                    currentTree.Add(currentNode);
+                    currentTree = currentNode.DerivedTypes;
+                }
+                else
+                {
+                    currentNode = currentTree.Nodes[index];
+                    currentTree = currentNode.DerivedTypes;
+                }
+            }
+        }
+    }
+
+    public class TypeNode : ITreeNode<TypeNode>
+    {
+        public TypeNode(Type type) : this(type, new TypeTree()) { }
+        internal TypeNode(Type type, TypeTree derivedTypes)
+        {
+            Type = type;
+            Interfaces = type.GetInterfaces();
+            DerivedTypes = derivedTypes;
+        }
+
+        public Type Type { get; }
+        public TypeTree DerivedTypes { get; }
+        public Type[] Interfaces { get; internal set; }
+
+        ITree<TypeNode> ITreeNode<TypeNode>.Children => DerivedTypes;
+
+        public override string ToString() => Type.ToString();
+    }
+
     public static partial class Extensions
     {
         public static IEnumerable<T> AllTreeLeafs<T>(this IEnumerable<EnumerableTreeNode<T>> tree)
@@ -322,14 +435,36 @@ namespace BenLib.Standard
                 else foreach (var leaf in node.Children.AllTreeLeafs()) yield return leaf;
             }
         }
-        public static IEnumerable<T> AllTreeNodes<T>(this IEnumerable<EnumerableTreeNode<T>> tree)
+        public static IEnumerable<ITreeNode<T>> AllTreeNodes<T>(this IEnumerable<EnumerableTreeNode<T>> tree)
         {
             foreach (var node in tree)
             {
-                if (!node.HasValue) foreach (var child in node.Children.AllTreeNodes()) yield return child;
+                if (!node.IsLeaf) foreach (var child in node.Children.AllTreeNodes()) yield return child;
+                if (node.HasValue && node.Value is ITreeNode<T> treeNode) yield return treeNode;
+            }
+        }
+        public static IEnumerable<T> AllTreeItems<T>(this IEnumerable<EnumerableTreeNode<T>> tree)
+        {
+            foreach (var node in tree)
+            {
+                if (node.IsLeaf) yield return node.Value;
+                else
+                {
+                    foreach (var child in node.Children.AllTreeItems()) yield return child;
+                    if (node.HasValue) yield return node.Value;
+                }
+            }
+        }
+        public static IEnumerable<T> TreeItems<T>(this IEnumerable<EnumerableTreeNode<T>> tree)
+        {
+            foreach (var node in tree)
+            {
+                if (!node.HasValue) foreach (var child in node.Children.TreeItems()) yield return child;
                 else yield return node.Value;
             }
         }
+
+        public static IEnumerable<EnumerableTreeNode<T>> ToEnumerableTree<T>(this IEnumerable<T> source) => source.Select(item => new EnumerableTreeNode<T>(item));
 
         public static IEnumerable<EnumerableTreeNode<T>> SubTree<T>(this ITree<T> tree, T start, T end, bool allowExcess)
         {
@@ -348,6 +483,7 @@ namespace BenLib.Standard
             static EnumerableTreeNode<T> SubTree(EnumerableTreeNode<T> treeNode, Range<TreeIndex> range, bool allowExcess) => treeNode.IsLeaf ? throw new InvalidOperationException("Cette instance est une feuille") : new EnumerableTreeNode<T>(treeNode.Children.SubTree(range, allowExcess));
         }
 
+        public static Tree<T> ToTree<T>(this IEnumerable<EnumerableTreeNode<T>> tree) => new Tree<T>(tree.Select(node => node.Value));
         public static Tree<T> ToTree<T, TNode>(this IEnumerable<EnumerableTreeNode<T>> tree, Func<Tree<T>, TNode> nodeCreator) where TNode : T, ITreeNode<T> => new Tree<T>(tree.Select(node => node.HasValue ? node.Value : nodeCreator(node.Children.ToTree(nodeCreator))));
         public static ArrayTree<T> ToArrayTree<T, TNode>(this IEnumerable<EnumerableTreeNode<T>> tree, Func<ArrayTree<T>, TNode> nodeCreator) where TNode : T, ITreeNode<T> => new ArrayTree<T>(tree.Select(node => node.HasValue ? node.Value : nodeCreator(node.Children.ToArrayTree(nodeCreator))));
     }

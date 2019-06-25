@@ -155,7 +155,7 @@ namespace BenLib.WPF
                 }
             }
 
-            IEnumerable<(Point A, Point B)> GetFigurePoints(PathFigure figure)
+            static IEnumerable<(Point A, Point B)> GetFigurePoints(PathFigure figure)
             {
                 var lastPoint = figure.StartPoint;
                 var resSeg = new PolyLineSegment();
@@ -378,13 +378,21 @@ namespace BenLib.WPF
 
         public static Geometry ToGeometry(this Shape shape)
         {
-            if (shape is Ellipse ellipse) return new EllipseGeometry(new Rect(Canvas.GetLeft(ellipse), Canvas.GetTop(ellipse), ellipse.Width, ellipse.Height));
-            if (shape is Line line) return new LineGeometry(new Point(line.X1, line.Y1), new Point(line.X2, line.Y2));
-            if (shape is Path path) return path.Data;
-            if (shape is Polygon polygon) return GeometryHelper.GetCurve(polygon.Points.ToArray(), true, false);
-            if (shape is Polyline polyline) return GeometryHelper.GetCurve(polyline.Points.ToArray(), false, false);
-            if (shape is Rectangle rectangle) return new RectangleGeometry(new Rect(Canvas.GetLeft(rectangle), Canvas.GetTop(rectangle), rectangle.Width, rectangle.Height), rectangle.RadiusX, rectangle.RadiusY);
-            return shape.RenderedGeometry;
+            var result = shape is Ellipse ellipse ? new EllipseGeometry(new Rect(0, 0, ellipse.Width, ellipse.Height)) :
+                shape is Line line ? new LineGeometry(new Point(line.X1, line.Y1), new Point(line.X2, line.Y2)) :
+                shape is Path path ? path.Data.CloneCurrentValue() :
+                shape is Polygon polygon ? GeometryHelper.GetCurve(polygon.Points.ToArray(), true, false) :
+                shape is Polyline polyline ? GeometryHelper.GetCurve(polyline.Points.ToArray(), false, false) :
+                shape is Rectangle rectangle ? new RectangleGeometry(new Rect(0, 0, rectangle.Width, rectangle.Height), rectangle.RadiusX, rectangle.RadiusY) :
+                shape.RenderedGeometry;
+
+            var transform = result.Transform.Value;
+            double left = Canvas.GetLeft(shape);
+            double top = Canvas.GetTop(shape);
+            transform.Translate(double.IsNaN(left) ? 0 : left, double.IsNaN(top) ? 0 : top);
+            result.Transform = new MatrixTransform(transform);
+
+            return result;
         }
 
         public static bool FillContainsFigure(this Geometry g1, Geometry g2)

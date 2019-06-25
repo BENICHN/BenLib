@@ -97,7 +97,7 @@ namespace BenLib.Standard
             finally { RandomSemaphore.Release(); }
         }
 
-        public static double Solve(Func<double, double> f, double start, double end, double precision)
+        public static double Solve(Func<double, double> f, double start, double end, double precision, double beginValue)
         {
             double Inter(double x0, double x1)
             {
@@ -105,7 +105,7 @@ namespace BenLib.Standard
                 return x1 - fx1 * (x1 - x0) / (fx1 - f(x0));
             }
 
-            double result = double.MaxValue;
+            double result = beginValue;
 
             while (Abs(f(result)) > precision)
             {
@@ -118,6 +118,32 @@ namespace BenLib.Standard
             }
 
             return result;
+        }
+
+        public static T Solve<T>(Func<double, T> f, Func<T, double> selector, double start, double end, double precision, double beginValue)
+        {
+            double result = beginValue;
+            var current = f(result);
+
+            while (Abs(selector(current)) > precision)
+            {
+                result = Inter(start, end);
+
+                if (double.IsNaN(result)) return f((start + end) / 2);
+
+                start = end;
+                end = result;
+                current = f(result);
+            }
+
+            return current;
+
+            double val(double x) => selector(f(x));
+            double Inter(double x0, double x1)
+            {
+                double fx1 = val(x1);
+                return x1 - fx1 * (x1 - x0) / (fx1 - val(x0));
+            }
         }
 
         public static int LCM(int a, int b)
@@ -137,7 +163,7 @@ namespace BenLib.Standard
 
             for (int i = 1; i < num2; i++)
             {
-                if ((num1 * i) % num2 == 0)
+                if (num1 * i % num2 == 0)
                 {
                     return i * num1;
                 }
@@ -147,13 +173,122 @@ namespace BenLib.Standard
 
         public static double Sigmoid(double x) => 1.0 / (1 + Exp(-x));
 
+        public static int Interpolate(int start, int end, double progress) => (int)((1 - progress) * start + progress * end);
+        public static IEnumerable<int> Interpolate(IList<int> start, IList<int> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static uint Interpolate(uint start, uint end, double progress) => (uint)((1 - progress) * start + progress * end);
+        public static IEnumerable<uint> Interpolate(IList<uint> start, IList<uint> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static long Interpolate(long start, long end, double progress) => (long)((1 - progress) * start + progress * end);
+        public static IEnumerable<long> Interpolate(IList<long> start, IList<long> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static ulong Interpolate(ulong start, ulong end, double progress) => (ulong)((1 - progress) * start + progress * end);
+        public static IEnumerable<ulong> Interpolate(IList<ulong> start, IList<ulong> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static short Interpolate(short start, short end, double progress) => (short)((1 - progress) * start + progress * end);
+        public static IEnumerable<short> Interpolate(IList<short> start, IList<short> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static ushort Interpolate(ushort start, ushort end, double progress) => (ushort)((1 - progress) * start + progress * end);
+        public static IEnumerable<ushort> Interpolate(IList<ushort> start, IList<ushort> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static byte Interpolate(byte start, byte end, double progress) => (byte)((1 - progress) * start + progress * end);
+        public static IEnumerable<byte> Interpolate(IList<byte> start, IList<byte> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static sbyte Interpolate(sbyte start, sbyte end, double progress) => (sbyte)((1 - progress) * start + progress * end);
+        public static IEnumerable<sbyte> Interpolate(IList<sbyte> start, IList<sbyte> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static float Interpolate(float start, float end, double progress) => (float)((1 - progress) * start + progress * end);
+        public static IEnumerable<float> Interpolate(IList<float> start, IList<float> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
         public static double Interpolate(double start, double end, double progress) => (1 - progress) * start + progress * end;
-        public static IEnumerable<double> Interpolate(IList<double> start, IList<double> end, double progress)
+        public static IEnumerable<double> Interpolate(IList<double> start, IList<double> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static decimal Interpolate(decimal start, decimal end, double progress) => (decimal)(1 - progress) * start + (decimal)progress * end;
+        public static IEnumerable<decimal> Interpolate(IList<decimal> start, IList<decimal> end, double progress) { foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1))) yield return Interpolate(from, to, progress); }
+
+        public static double Bernstein(double t, double n, double k) => Binom(n, k) * t.Pow(n) * (1 - t).Pow(k - n);
+        public static double Binom(double n, double k)
         {
-            foreach (var (from, to) in start.ExpandOrContract((0, start.Count - 1), end, (0, end.Count - 1)))
+            double result = 1;
+            for (int i = 1; i <= k; i++)
             {
-                yield return Interpolate(from, to, progress);
+                result *= n - (k - i);
+                result /= i;
             }
+            return result;
+        }
+
+        public static IEnumerable<long[]> NegativePascal(long n) => Pascal(n).Select(line => line.Select((n, i) => i % 2 == 0 ? n : -n).ToArray());
+        public static IEnumerable<long[]> Pascal(long n)
+        {
+            long[] current = new long[] { 1 };
+            yield return current;
+
+            for (long i = 1; i <= n; i++)
+            {
+                current = NextLine(current).ToArray();
+                yield return current;
+            }
+
+            static IEnumerable<long> NextLine(long[] line)
+            {
+                for (int i = 0; i <= line.Length; i++)
+                {
+                    yield return
+                        i == 0 ? 1 :
+                        i == line.Length ? 1 :
+                        line[i - 1] + line[i];
+                }
+            }
+        }
+
+        public static (double x, double y) GetBezierPoint(double t, params (double x, double y)[] controlPoints)
+        {
+            int n = controlPoints.Length - 1;
+            double[] bs = Interval<int>.CC(0, n).Numbers().Select(k => Binom(n, k)).ToArray();
+            return bs.Select((b, k) =>
+            {
+                double bernstein = b * t.Pow(k) * (1 - t).Pow(n - k);
+                var (x, y) = controlPoints[k];
+                return (bernstein * x, bernstein * y);
+            }).Operate((p, pn) => (p.Item1 + pn.Item1, p.Item2 + pn.Item2));
+        }
+
+        public static IEnumerable<(double x, double y)> GetBezierPoints(double step, params (double x, double y)[] controlPoints)
+        {
+            var tcoefs = GetTCoefs(controlPoints);
+            return Range<double>.CC(0, 1).Numbers(step).Select(t => GetBezierPointFromTCoefs(t, tcoefs));
+        }
+
+        public static (double x, double y) GetBezierPointFromX(double x, double precision, params (double x, double y)[] controlPoints)
+        {
+            var tcoefs = GetTCoefs(controlPoints);
+            return Solve(t => GetBezierPointFromTCoefs(t, tcoefs), p => p.x - x, 0, 1, precision, x);
+        }
+
+        public static (double x, double y) GetBezierPointFromY(double y, double precision, params (double x, double y)[] controlPoints)
+        {
+            var tcoefs = GetTCoefs(controlPoints);
+            return Solve(t => GetBezierPointFromTCoefs(t, tcoefs), p => p.x - y, 0, 1, precision, y);
+        }
+
+        public static (double x, double y) GetBezierPointFromTCoefs(double t, (double cx, double cy)[] tcoefs)
+        {
+            long n = tcoefs.LongLength - 1;
+            return Interval<long>.CC(0, n).Numbers().Select(k =>
+            {
+                var (cx, cy) = tcoefs[k];
+                double tp = t.Pow(n - k);
+                return (tp * cx, tp * cy);
+            }).Operate((v, vn) => (v.Item1 + vn.Item1, v.Item2 + vn.Item2));
+        }
+
+        public static (double cx, double cy)[] GetTCoefs(params (double x, double y)[] controlPoints)
+        {
+            long n = controlPoints.LongLength - 1;
+            long[][] pascal = NegativePascal(n).ToArray();
+            long[][] coefs = Interval<long>.CC(0, n).Numbers().Select(k => Abs(pascal[n][k])).Select((k, i) => pascal[n - i].Select(l => k * l).ToArray()).ToArray();
+            return coefs.Select((deg, i) => deg.Select((k, j) => { var (x, y) = controlPoints[n - i - j]; return (k * x, k * y); }).Operate((v, vn) => (v.Item1 + vn.Item1, v.Item2 + vn.Item2))).ToArray();
         }
     }
 
@@ -270,8 +405,18 @@ namespace BenLib.Standard
 
         public static bool IsNullOrEmpty<T>(this Interval<T> interval) where T : IComparable<T> => interval == null || interval.IsEmpty;
 
+        public static short TrimToShort(this int value) => value < short.MinValue ? short.MinValue : value > short.MaxValue ? short.MaxValue : (short)value;
+        public static short TrimToShort(this long value) => value < short.MinValue ? short.MinValue : value > short.MaxValue ? short.MaxValue : (short)value;
+        public static short TrimToShort(this double value) => value < short.MinValue ? short.MinValue : value > short.MaxValue ? short.MaxValue : (short)value;
+        public static short TrimToShort(this decimal value) => value < short.MinValue ? short.MinValue : value > short.MaxValue ? short.MaxValue : (short)value;
+
+        public static int TrimToInt(this long value) => value < int.MinValue ? int.MinValue : value > int.MaxValue ? int.MaxValue : (int)value;
         public static int TrimToInt(this double value) => value < int.MinValue ? int.MinValue : value > int.MaxValue ? int.MaxValue : (int)value;
         public static int TrimToInt(this decimal value) => value < int.MinValue ? int.MinValue : value > int.MaxValue ? int.MaxValue : (int)value;
+
+        public static long TrimToLong(this double value) => value < long.MinValue ? long.MinValue : value > long.MaxValue ? long.MaxValue : (long)value;
+        public static long TrimToLong(this decimal value) => value < long.MinValue ? long.MinValue : value > long.MaxValue ? long.MaxValue : (long)value;
+
         public static decimal TrimToDecimal(this double value) => value < (double)decimal.MinValue ? decimal.MinValue : value > (double)decimal.MaxValue ? decimal.MaxValue : (decimal)value;
 
         public static double Magnet(this double d, double value, double tolerance) => Abs(d - value) <= tolerance ? value : d;

@@ -3,12 +3,41 @@ using System.Linq;
 using BenLib.Standard;
 using static BenLib.Standard.Interval<int>;
 using static BenLib.Standard.Ordinal<int>;
+using System;
+using System.Threading.Tasks;
 
 namespace BenLib.Test
 {
     [TestClass]
     public class BenLibTest
     {
+        public class Permanent
+        {
+            public static event EventHandler PermanentEvent;
+            public int PermanentProperty { get; set; }
+        }
+
+        public class Ephemere
+        {
+            public event EventHandler EphemereEvent;
+            public decimal EphemereProperty { get; set; }
+        }
+
+        [TestMethod]
+        public void MemoryTest()
+        {
+            void PermanentMethod(object sender, EventArgs e) { }
+            for (int i = 0; i < 4000000; i++) new Ephemere().EphemereEvent += PermanentMethod;
+            GC.Collect();
+            while (true) { }
+        }
+
+        [TestMethod]
+        public void NumTest()
+        {
+            double t1 = Num.Solve(x => Num.GetBezierPoint(x, (0, 0), (0.8, 0.5), (0.1, 1), (1, 1)).x - 0.7, 0, 1, 0.001, 0.7);
+            var t2 = Num.GetBezierPointFromX(0.7, 0.001, (0, 0), (0.8, 0.5), (0.1, 1), (1, 1));
+        }
         [TestMethod]
         public void RangeTest()
         {

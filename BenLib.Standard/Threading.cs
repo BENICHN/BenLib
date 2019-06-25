@@ -96,7 +96,7 @@ namespace BenLib.Standard
             else return default;
         }
 
-        public static void SetInterval(Action action, int milliseconds)
+        public static void SetInterval(Action action, double milliseconds)
         {
             var dt = new Timer(milliseconds) { AutoReset = true, Enabled = true };
             dt.Elapsed += (sender, e) => action();

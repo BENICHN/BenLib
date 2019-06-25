@@ -36,6 +36,8 @@ namespace BenLib.Framework
 
     public class FrameStopwatch
     {
+        public event EventHandler<EventArgs<long>> Updated;
+
         public FrameStopwatch(int fps = 60, long elapsedFrames = 0)
         {
             FPS = fps;
@@ -45,7 +47,18 @@ namespace BenLib.Framework
         ~FrameStopwatch() => CompositionTarget.Rendering -= SpendEvent;
 
         public int FPS { get; set; }
-        public long ElapsedFrames { get; private set; }
+
+        private long m_elapsedFrames;
+        public long ElapsedFrames
+        {
+            get => m_elapsedFrames;
+            private set
+            {
+                long diff = value - m_elapsedFrames;
+                m_elapsedFrames = value;
+                Updated?.Invoke(this, EventArgsHelper.Create(diff));
+            }
+        }
 
         public TimeSpan Elapsed => TimeSpan.FromMilliseconds(ElapsedMilliseconds);
         public double ElapsedMilliseconds => 1000 * ElapsedFrames / FPS;
