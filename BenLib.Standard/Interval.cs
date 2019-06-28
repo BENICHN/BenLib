@@ -194,27 +194,26 @@ namespace BenLib.Standard
 
     public readonly struct Ordinal<T> : IComparable<Ordinal<T>>, IEquatable<Ordinal<T>> where T : IComparable<T>
     {
-        private Ordinal(T value, int level, bool isNaN, bool isPositiveInfinity, bool isNegativeInfinity)
+        private Ordinal(T value, int level, OrdinalState state)
         {
-            (Value, Level) = (isNaN || isPositiveInfinity || isNegativeInfinity) ? (value, level) : OrdinalValueHelper<T>.Default.ComputeLevel(value, level);
-            IsNaN = isNaN;
-            IsPositiveInfinity = isPositiveInfinity;
-            IsNegativeInfinity = isNegativeInfinity;
+            (Value, Level) = state != OrdinalState.Real ? (value, level) : OrdinalValueHelper<T>.Default.ComputeLevel(value, level);
+            State = state;
         }
 
-        public Ordinal(T value, int level) : this(value, level, false, false, false) { }
+        public Ordinal(T value, int level) : this(value, level, OrdinalState.Real) { }
 
         public T Value { get; }
         public int Level { get; }
 
-        public bool IsNaN { get; }
-        public bool IsPositiveInfinity { get; }
-        public bool IsNegativeInfinity { get; }
+        public OrdinalState State { get; }
 
-        public bool IsReal => !(IsNaN || IsPositiveInfinity || IsNegativeInfinity);
+        public bool IsNaN => State == OrdinalState.NaN;
+        public bool IsPositiveInfinity => State == OrdinalState.PositiveInfinity;
+        public bool IsNegativeInfinity => State == OrdinalState.NegativeInfinity;
+        public bool IsReal => State == OrdinalState.Real;
 
-        public Ordinal<T> Antecedent => IsNaN ? NaN : IsPositiveInfinity ? PositiveInfinity : IsNegativeInfinity ? NegativeInfinity : new Ordinal<T>(Value, Level - 1, false, false, false);
-        public Ordinal<T> Next => IsNaN ? NaN : IsPositiveInfinity ? PositiveInfinity : IsNegativeInfinity ? NegativeInfinity : new Ordinal<T>(Value, Level + 1, false, false, false);
+        public Ordinal<T> Antecedent => IsNaN ? NaN : IsPositiveInfinity ? PositiveInfinity : IsNegativeInfinity ? NegativeInfinity : new Ordinal<T>(Value, Level - 1);
+        public Ordinal<T> Next => IsNaN ? NaN : IsPositiveInfinity ? PositiveInfinity : IsNegativeInfinity ? NegativeInfinity : new Ordinal<T>(Value, Level + 1);
 
         int IComparable<Ordinal<T>>.CompareTo(Ordinal<T> other) => CompareTo(other);
         public int CompareTo(in Ordinal<T> other) => CompareTo(other, out _);
@@ -256,9 +255,9 @@ namespace BenLib.Standard
         public bool IsFarAfter(in Ordinal<T> other) => CompareTo(other) == 2;
         public bool IsAround(in Ordinal<T> other) => Abs(CompareTo(other)) < 2;
 
-        public Ordinal<TResult> Convert<TResult>() where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? (TResult)(object)Value : default, Level, IsNaN, IsPositiveInfinity, IsNegativeInfinity);
-        public Ordinal<TResult> Convert<TResult>(Func<T, TResult> converter) where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? converter(Value) : default, Level, IsNaN, IsPositiveInfinity, IsNegativeInfinity);
-        public Ordinal<TResult> Convert<TResult>(Func<T, TResult> valueConverter, Func<T, int> levelConverter) where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? valueConverter(Value) : default, IsReal ? levelConverter(Value) : Level, IsNaN, IsPositiveInfinity, IsNegativeInfinity);
+        public Ordinal<TResult> Convert<TResult>() where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? (TResult)(object)Value : default, Level, State);
+        public Ordinal<TResult> Convert<TResult>(Func<T, TResult> converter) where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? converter(Value) : default, Level, State);
+        public Ordinal<TResult> Convert<TResult>(Func<T, TResult> valueConverter, Func<T, int> levelConverter) where TResult : IComparable<TResult> => new Ordinal<TResult>(IsReal ? valueConverter(Value) : default, IsReal ? levelConverter(Value) : Level, State);
 
         public static bool operator !=(Ordinal<T> left, Ordinal<T> right) => left.CompareTo(right) != 0;
         public static bool operator ==(Ordinal<T> left, Ordinal<T> right) => left.CompareTo(right) == 0;
@@ -269,10 +268,10 @@ namespace BenLib.Standard
 
         public static implicit operator Ordinal<T>(T value) => new Ordinal<T>(value, 0);
 
-        public static Ordinal<T> Zero = new Ordinal<T>(OrdinalValueHelper<T>.Default.Zero, 0, false, false, false);
-        public static Ordinal<T> NaN = new Ordinal<T>(default, 0, true, false, false);
-        public static Ordinal<T> PositiveInfinity = new Ordinal<T>(default, -1, false, true, false);
-        public static Ordinal<T> NegativeInfinity = new Ordinal<T>(default, 1, false, false, true);
+        public static Ordinal<T> Zero = new Ordinal<T>(OrdinalValueHelper<T>.Default.Zero, 0);
+        public static Ordinal<T> NaN = new Ordinal<T>(default, 0, OrdinalState.NaN);
+        public static Ordinal<T> PositiveInfinity = new Ordinal<T>(default, -1, OrdinalState.PositiveInfinity);
+        public static Ordinal<T> NegativeInfinity = new Ordinal<T>(default, 1, OrdinalState.NegativeInfinity);
 
         public static Ordinal<T> Min(in Ordinal<T> left, in Ordinal<T> right) => left < right ? left : right;
         public static Ordinal<T> Max(in Ordinal<T> left, in Ordinal<T> right) => left > right ? left : right;
@@ -281,19 +280,19 @@ namespace BenLib.Standard
         public string ToString(bool level) => IsNaN ? "NaN" : IsPositiveInfinity ? "+∞" : IsNegativeInfinity ? "-∞" : Value.ToString() + (!level || Level == 0 ? string.Empty : $"₍{(Level > 0 ? "₊" + Level.ToSubscript() : Level.ToSubscript())}₎");
 
         public override bool Equals(object obj) => obj is Ordinal<T> ordinal && Equals(ordinal);
-        public bool Equals(Ordinal<T> other) => EqualityComparer<T>.Default.Equals(Value, other.Value) && Level == other.Level && IsNaN == other.IsNaN && IsPositiveInfinity == other.IsPositiveInfinity && IsNegativeInfinity == other.IsNegativeInfinity;
+        public bool Equals(Ordinal<T> other) => EqualityComparer<T>.Default.Equals(Value, other.Value) && Level == other.Level && State == other.State;
 
         public override int GetHashCode()
         {
-            int hashCode = 435058893;
+            int hashCode = 1371160485;
             hashCode = hashCode * -1521134295 + EqualityComparer<T>.Default.GetHashCode(Value);
             hashCode = hashCode * -1521134295 + Level.GetHashCode();
-            hashCode = hashCode * -1521134295 + IsNaN.GetHashCode();
-            hashCode = hashCode * -1521134295 + IsPositiveInfinity.GetHashCode();
-            hashCode = hashCode * -1521134295 + IsNegativeInfinity.GetHashCode();
+            hashCode = hashCode * -1521134295 + State.GetHashCode();
             return hashCode;
         }
     }
+
+    public enum OrdinalState { NaN, Real, PositiveInfinity, NegativeInfinity }
 
     public static class Interval
     {

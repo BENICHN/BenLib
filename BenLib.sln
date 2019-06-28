@@ -4,12 +4,24 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib", "BenLib\BenLib.csproj", "{6508F952-9675-4B56-9623-7CA7BA5DCBF1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1} = {3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.WPF", "BenLib.WPF\BenLib.WPF.csproj", "{162852A6-A275-4ACB-916D-0692E53E284F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6508F952-9675-4B56-9623-7CA7BA5DCBF1} = {6508F952-9675-4B56-9623-7CA7BA5DCBF1}
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1} = {3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.Test", "BenLib.Test\BenLib.Test.csproj", "{2E9BD66A-522F-4F40-B80C-C6F4F7443C88}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6508F952-9675-4B56-9623-7CA7BA5DCBF1} = {6508F952-9675-4B56-9623-7CA7BA5DCBF1}
+		{162852A6-A275-4ACB-916D-0692E53E284F} = {162852A6-A275-4ACB-916D-0692E53E284F}
+		{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1} = {3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenLib.Standard", "BenLib.Standard\BenLib.Standard.csproj", "{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenLib.Standard", "BenLib.Standard\BenLib.Standard.csproj", "{3ED1A0F1-24B4-4936-8BA7-75B90E4D67C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

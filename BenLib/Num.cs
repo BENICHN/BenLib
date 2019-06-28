@@ -94,6 +94,9 @@ namespace BenLib.Framework
 
             return Atan2(sin, cos);
         }
+
+        public static double Distance(Point start, Point end) => Sqrt(SquaredDistance(start, end));
+        public static double SquaredDistance(Point start, Point end) => Num.SquaredDistance(start.Deconstruct(), end.Deconstruct());
     }
 
     public static partial class Extensions
@@ -114,7 +117,6 @@ namespace BenLib.Framework
             return (startProgress.Trim(), endProgress.Trim());
         }
         public static IEnumerable<double> SplitTrimProgress(this double progress, params double[] splitLocations) => SplitProgress(progress, splitLocations).Select(p => p.Trim());
-
 
         public static (double StartProgress, double EndProgress) SplitProgress(this double progress, double splitLocation)
         {
@@ -191,5 +193,8 @@ namespace BenLib.Framework
             double b = (y * xu - x * yu) / c;
             return (a * base1, b * base2);
         }
+
+        public static (double x, double y) Deconstruct(this Point point) => (point.X, point.Y);
+        public static (double x, double y) Deconstruct(this Vector vector) => (vector.X, vector.Y);
     }
 }

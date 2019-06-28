@@ -1,4 +1,5 @@
 ﻿using BenLib.Standard;
+using BenLib.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,112 +12,90 @@ namespace BenLib.WPF
 {
     public static class GeometryHelper
     {
-        public static PathFigure InterpolatePointWithBeizerCurves(IEnumerable<Point> points, bool closed, double smoothValue = 0.75) => InterpolatePointWithBeizerCurves(points.ToList(), closed, smoothValue);
-
-        public static PathFigure InterpolatePointWithBeizerCurves(List<Point> points, bool closed, double smoothValue = 0.75)
+        public static StreamGeometry InterpolatePointWithBeizerCurves(IEnumerable<Point> points, bool closed, double smoothValue = 0.75) => InterpolatePointWithBeizerCurves(points.ToList(), closed, smoothValue);
+        public static StreamGeometry InterpolatePointWithBeizerCurves(List<Point> points, bool closed, double smoothValue = 0.75)
         {
-            if (points.Count == 2) return new PathFigure(points[0], new PathSegmentCollection(new[] { new LineSegment(points[1], true) }), closed);
-            else if (points.Count < 3) return null;
+            int count = points.Count;
+            var result = new StreamGeometry();
 
-            //if is close curve then add the first point at the end
-            if (closed) points.Add(points[0]);
+            if (points.Count < 2) return (StreamGeometry)Geometry.Empty;
 
-            var segments = new PathSegmentCollection(points.Count - 1);
-
-            for (int i = 0; i < points.Count - 1; i++) //iterate for points but the last one
+            using (var context = result.Open())
             {
-                // Assume we need to calculate the control
-                // points between (x1,y1) and (x2,y2).
-                // Then x0,y0 - the previous vertex,
-                //      x3,y3 - the next one.
-                double x1 = points[i].X;
-                double y1 = points[i].Y;
-
-                double x2 = points[i + 1].X;
-                double y2 = points[i + 1].Y;
-
-                double x0;
-                double y0;
-
-                if (i == 0) //if is first point
+                if (points.Count == 2)
                 {
-                    if (closed)
-                    {
-                        var previousPoint = points[points.Count - 2]; //last Point, but one (due inserted the first at the end)
-                        x0 = previousPoint.X;
-                        y0 = previousPoint.Y;
-                    }
-                    else //Get some previouse point
-                    {
-                        var previousPoint = points[i]; //if is the first point the previous one will be it self
-                        x0 = previousPoint.X;
-                        y0 = previousPoint.Y;
-                    }
+                    context.BeginFigure(points[0], true, false);
+                    context.LineTo(points[1], true, true);
                 }
                 else
                 {
-                    x0 = points[i - 1].X; //Previous Point
-                    y0 = points[i - 1].Y;
-                }
-
-                double x3, y3;
-
-                if (i == points.Count - 2) //if is the last point
-                {
                     if (closed)
                     {
-                        var nextPoint = points[1]; //second Point (due inserted the first at the end)
-                        x3 = nextPoint.X;
-                        y3 = nextPoint.Y;
+                        points.Add(points[0]);
+                        count++;
                     }
-                    else //Get some next point
+
+                    for (int i = 0; i < points.Count - 1; i++)
                     {
-                        var nextPoint = points[i + 1]; //if is the last point the next point will be the last one
-                        x3 = nextPoint.X;
-                        y3 = nextPoint.Y;
+                        var (x1, y1) = points[i].Deconstruct();
+                        var (x2, y2) = points[i + 1].Deconstruct();
+
+                        var (x0, y0) = i == 0 ? closed ? points[count - 2].Deconstruct() : (x1, y1) : points[i - 1].Deconstruct();
+                        var (x3, y3) = i == count - 2 ? closed ? points[1].Deconstruct() : (x2, y2) : points[i + 2].Deconstruct();
+
+                        double xc1 = (x0 + x1) / 2.0;
+                        double yc1 = (y0 + y1) / 2.0;
+                        double xc2 = (x1 + x2) / 2.0;
+                        double yc2 = (y1 + y2) / 2.0;
+                        double xc3 = (x2 + x3) / 2.0;
+                        double yc3 = (y2 + y3) / 2.0;
+
+                        double len1 = Num.Distance((x1, y1), (x0, y0));
+                        double len2 = Num.Distance((x2, y2), (x1, y1));
+                        double len3 = Num.Distance((x3, y3), (x2, y2));
+
+                        double k1 = len1 / (len1 + len2);
+                        double k2 = len2 / (len2 + len3);
+
+                        double xm1 = xc1 + (xc2 - xc1) * k1;
+                        double ym1 = yc1 + (yc2 - yc1) * k1;
+
+                        double xm2 = xc2 + (xc3 - xc2) * k2;
+                        double ym2 = yc2 + (yc3 - yc2) * k2;
+
+                        double ctrl1_x = xm1 + (xc2 - xm1) * smoothValue + x1 - xm1;
+                        double ctrl1_y = ym1 + (yc2 - ym1) * smoothValue + y1 - ym1;
+
+                        double ctrl2_x = xm2 + (xc2 - xm2) * smoothValue + x2 - xm2;
+                        double ctrl2_y = ym2 + (yc2 - ym2) * smoothValue + y2 - ym2;
+
+                        context.BezierTo(i == 0 && !closed ? new Point(x1, y1) : new Point(ctrl1_x, ctrl1_y), i == points.Count - 2 && !closed ? new Point(x2, y2) : new Point(ctrl2_x, ctrl2_y), new Point(x2, y2), true, true);
                     }
                 }
-                else
-                {
-                    x3 = points[i + 2].X; //Next Point
-                    y3 = points[i + 2].Y;
-                }
-
-                double xc1 = (x0 + x1) / 2.0;
-                double yc1 = (y0 + y1) / 2.0;
-                double xc2 = (x1 + x2) / 2.0;
-                double yc2 = (y1 + y2) / 2.0;
-                double xc3 = (x2 + x3) / 2.0;
-                double yc3 = (y2 + y3) / 2.0;
-
-                double len1 = Math.Sqrt((x1 - x0).Pow(2) + (y1 - y0).Pow(2));
-                double len2 = Math.Sqrt((x2 - x1).Pow(2) + (y2 - y1).Pow(2));
-                double len3 = Math.Sqrt((x3 - x2).Pow(2) + (y3 - y2).Pow(2));
-
-                double k1 = len1 / (len1 + len2);
-                double k2 = len2 / (len2 + len3);
-
-                double xm1 = xc1 + (xc2 - xc1) * k1;
-                double ym1 = yc1 + (yc2 - yc1) * k1;
-
-                double xm2 = xc2 + (xc3 - xc2) * k2;
-                double ym2 = yc2 + (yc3 - yc2) * k2;
-
-                // Resulting control points. Here smooth_value is mentioned
-                // above coefficient K whose value should be in range [0...1].
-                double ctrl1_x = xm1 + (xc2 - xm1) * smoothValue + x1 - xm1;
-                double ctrl1_y = ym1 + (yc2 - ym1) * smoothValue + y1 - ym1;
-
-                double ctrl2_x = xm2 + (xc2 - xm2) * smoothValue + x2 - xm2;
-                double ctrl2_y = ym2 + (yc2 - ym2) * smoothValue + y2 - ym2;
-
-                segments.Add(new BezierSegment(i == 0 && !closed ? new Point(x1, y1) : new Point(ctrl1_x, ctrl1_y), i == points.Count - 2 && !closed ? new Point(x2, y2) : new Point(ctrl2_x, ctrl2_y), new Point(x2, y2), true));
             }
 
-            return new PathFigure(points[0], segments, closed);
+            return result;
         }
 
-        public static PathGeometry GetCurve(Point[] points, bool closed, bool smooth, double smoothValue = 0.75) => points.Length > 1 ? smooth ? new PathGeometry(new[] { InterpolatePointWithBeizerCurves(points, false, smoothValue) }) : new PathGeometry(new[] { new PathFigure(points[0], new[] { new PolyLineSegment(points.Skip(1), true) }, closed) }) : PathGeometry.CreateFromGeometry(Geometry.Empty);
+        public static StreamGeometry GetCurve(IList<Point> points, bool closed, bool smooth, double smoothValue = 0.75)
+        {
+            int count = points.Count;
+            if (count > 1)
+            {
+                if (smooth) return InterpolatePointWithBeizerCurves(points, closed, smoothValue);
+                else
+                {
+                    var result = new StreamGeometry();
+                    using (var context = result.Open())
+                    {
+                        context.BeginFigure(points[0], true, closed);
+                        for (int i = 1; i < count; i++) context.LineTo(points[i], true, true);
+                    }
+                    return result;
+                }
+            }
+            else return (StreamGeometry)Geometry.Empty;
+        }
 
         public static GeometryGroup Group(IEnumerable<Geometry> children) => new GeometryGroup() { Children = new GeometryCollection(children) };
         public static GeometryGroup Group(params Geometry[] children) => new GeometryGroup() { Children = new GeometryCollection(children) };
@@ -355,7 +334,7 @@ namespace BenLib.WPF
 
         public static IEnumerable<Point> GetPoints(this Geometry geometry, double tolerance = -1, ToleranceType type = ToleranceType.Absolute)
         {
-            var f = tolerance < 0 ? geometry.GetFlattenedPathGeometry() : geometry.GetFlattenedPathGeometry(tolerance, type);
+            var f = geometry is PathGeometry pathGeometry ? pathGeometry : tolerance < 0 ? geometry.GetFlattenedPathGeometry() : geometry.GetFlattenedPathGeometry(tolerance, type);
 
             foreach (var figure in f.Figures)
             {
@@ -393,13 +372,6 @@ namespace BenLib.WPF
             result.Transform = new MatrixTransform(transform);
 
             return result;
-        }
-
-        public static bool FillContainsFigure(this Geometry g1, Geometry g2)
-        {
-            if (g2 is PathGeometry pathGeometry && pathGeometry.Figures.Count > 1) foreach (var geometry in Geometry.Combine(g2, g2, GeometryCombineMode.Intersect, null).Figures.Select(figure => new PathGeometry(new[] { figure }))) { if (g1.FillContains(geometry)) return true; }
-            else return g1.FillContains(g2);
-            return false;
         }
     }
 }

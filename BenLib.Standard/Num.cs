@@ -290,6 +290,14 @@ namespace BenLib.Standard
             long[][] coefs = Interval<long>.CC(0, n).Numbers().Select(k => Abs(pascal[n][k])).Select((k, i) => pascal[n - i].Select(l => k * l).ToArray()).ToArray();
             return coefs.Select((deg, i) => deg.Select((k, j) => { var (x, y) = controlPoints[n - i - j]; return (k * x, k * y); }).Operate((v, vn) => (v.Item1 + vn.Item1, v.Item2 + vn.Item2))).ToArray();
         }
+
+        public static double Distance((double x, double y) start, (double x, double y) end) => Sqrt(SquaredDistance(start, end));
+        public static double SquaredDistance((double x, double y) start, (double x, double y) end)
+        {
+            double ox = end.x - start.x;
+            double oy = end.y - start.y;
+            return ox * ox + oy * oy;
+        }
     }
 
     public static partial class Extensions
