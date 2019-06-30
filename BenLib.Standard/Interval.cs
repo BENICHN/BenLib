@@ -351,7 +351,7 @@ namespace BenLib.Standard
         public static bool operator >=(Ordinal<T> left, Interval<T> right) => right <= left;
 
         public static bool operator ==(Interval<T> left, Interval<T> right) => !(left != right);
-        public static bool operator !=(Interval<T> left, Interval<T> right) => left == (object)null ^ right == (object)null || !(left ^ right).IsEmpty;
+        public static bool operator !=(Interval<T> left, Interval<T> right) => !object.ReferenceEquals(left, right) && (left == (object)null ^ right == (object)null || !(left ^ right).IsEmpty);
         public override bool Equals(object obj) => base.Equals(obj);
         public override int GetHashCode() => base.GetHashCode();
 

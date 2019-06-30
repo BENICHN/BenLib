@@ -104,19 +104,19 @@ namespace BenLib.Framework
         public static (double StartProgress, double EndProgress) SplitTrimProgress(this double progress, double splitLocation)
         {
             var (startProgress, endProgress) = SplitProgress(progress, splitLocation);
-            return (startProgress.Trim(), endProgress.Trim());
+            return (startProgress.Trim(0, 1), endProgress.Trim(0, 1));
         }
         public static (double StartProgress, double EndProgress) SplitTrimProgress(this double progress, double firstEnd, double lastStart)
         {
             var (startProgress, endProgress) = SplitProgress(progress, firstEnd, lastStart);
-            return (startProgress.Trim(), endProgress.Trim());
+            return (startProgress.Trim(0, 1), endProgress.Trim(0, 1));
         }
         public static (double StartProgress, double endProgress) SplitTrimProgress(this double progress, double firstStart, double firstEnd, double lastStart, double lastEnd)
         {
             var (startProgress, endProgress) = SplitProgress(progress, firstStart, firstEnd, lastStart, lastEnd);
-            return (startProgress.Trim(), endProgress.Trim());
+            return (startProgress.Trim(0, 1), endProgress.Trim(0, 1));
         }
-        public static IEnumerable<double> SplitTrimProgress(this double progress, params double[] splitLocations) => SplitProgress(progress, splitLocations).Select(p => p.Trim());
+        public static IEnumerable<double> SplitTrimProgress(this double progress, params double[] splitLocations) => SplitProgress(progress, splitLocations).Select(p => p.Trim(0, 1));
 
         public static (double StartProgress, double EndProgress) SplitProgress(this double progress, double splitLocation)
         {
@@ -196,5 +196,9 @@ namespace BenLib.Framework
 
         public static (double x, double y) Deconstruct(this Point point) => (point.X, point.Y);
         public static (double x, double y) Deconstruct(this Vector vector) => (vector.X, vector.Y);
+
+        public static bool IsNaN(this double value) => double.IsNaN(value);
+        public static bool IsNaN(this Point point) => double.IsNaN(point.X + point.Y);
+        public static bool IsNaN(this Vector vector) => double.IsNaN(vector.X + vector.Y);
     }
 }

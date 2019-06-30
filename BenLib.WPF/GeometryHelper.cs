@@ -1,5 +1,5 @@
-﻿using BenLib.Standard;
-using BenLib.Framework;
+﻿using BenLib.Framework;
+using BenLib.Standard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,11 +119,13 @@ namespace BenLib.WPF
             return result;
         }
 
-        public static PathGeometry ClipGeometry(PathGeometry geometry, Rect clipRect)
+        public static StreamGeometry ClipGeometry(PathGeometry geometry, Rect clipRect)
         {
-            return new PathGeometry(geometry.Figures.SelectMany(figure => GetFigures(figure)));
+            var result = new StreamGeometry();
+            using (var context = result.Open()) { foreach (var figure in geometry.Figures) GetFigures(context, figure, clipRect); }
+            return result;
 
-            (Point A, Point B)? LineRectIntersectionEndpoints(Point lineStart, Point lineEnd)
+            static (Point A, Point B)? LineRectIntersectionEndpoints(Point lineStart, Point lineEnd, Rect clipRect)
             {
                 var endpoints = LineRectIntersection(lineStart, lineEnd, clipRect).GetEnumerator();
                 if (!endpoints.MoveNext()) return null;
@@ -134,7 +136,7 @@ namespace BenLib.WPF
                 }
             }
 
-            static IEnumerable<(Point A, Point B)> GetFigurePoints(PathFigure figure)
+            static IEnumerable<(Point A, Point B)> GetFigurePoints(PathFigure figure, Rect clipRect)
             {
                 var lastPoint = figure.StartPoint;
                 var resSeg = new PolyLineSegment();
@@ -142,7 +144,7 @@ namespace BenLib.WPF
                 {
                     if (segment is LineSegment lineSegment)
                     {
-                        var endpoints = LineRectIntersectionEndpoints(lastPoint, lineSegment.Point);
+                        var endpoints = LineRectIntersectionEndpoints(lastPoint, lineSegment.Point, clipRect);
                         if (endpoints.HasValue) yield return endpoints.Value;
                         lastPoint = lineSegment.Point;
                     }
@@ -150,7 +152,7 @@ namespace BenLib.WPF
                     {
                         foreach (var point in polyLineSegment.Points)
                         {
-                            var endpoints = LineRectIntersectionEndpoints(lastPoint, point);
+                            var endpoints = LineRectIntersectionEndpoints(lastPoint, point, clipRect);
                             if (endpoints.HasValue) yield return endpoints.Value;
                             lastPoint = point;
                         }
@@ -158,13 +160,12 @@ namespace BenLib.WPF
                 }
             }
 
-            IEnumerable<PathFigure> GetFigures(PathFigure figure)
+            static void GetFigures(StreamGeometryContext context, PathFigure figure, Rect clipRect)
             {
-                var enumerator = GetFigurePoints(figure).GetEnumerator();
-                if (!enumerator.MoveNext()) yield break;
+                var enumerator = GetFigurePoints(figure, clipRect).GetEnumerator();
+                if (!enumerator.MoveNext()) return;
 
                 Point? startPoint = null;
-                var points = new List<Point>();
                 var last = enumerator.Current;
 
                 while (enumerator.MoveNext())
@@ -177,26 +178,27 @@ namespace BenLib.WPF
                         {
                             if (last.A == d)
                             {
-                                startPoint = last.A;
-                                points.Add(last.B);
+                                startPoint = last.B;
+                                context.BeginFigure(startPoint.Value, true, false);
+                                context.LineTo(last.A, true, true);
                             }
                             else
                             {
-                                startPoint = last.B;
-                                points.Add(last.A);
+                                startPoint = last.A;
+                                context.BeginFigure(startPoint.Value, true, false);
+                                context.LineTo(last.B, true, true);
                             }
                         }
-                        points.Add(d);
+                        context.LineTo(d, true, true);
                     }
                     else
                     {
-                        if (!startPoint.HasValue) yield return new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
-                        else
+                        if (!startPoint.HasValue)
                         {
-                            yield return new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false);
-                            startPoint = null;
-                            points = new List<Point>();
+                            context.BeginFigure(last.A, true, false);
+                            context.LineTo(last.B, true, true);
                         }
+                        else startPoint = null;
                     }
 
                     last = (a, b);
@@ -218,9 +220,15 @@ namespace BenLib.WPF
                     }
                 }
 
-                yield return startPoint.HasValue
+                if (!startPoint.HasValue)
+                {
+                    //context.BeginFigure(startPoint.Value, true, false);
+                    context.BeginFigure(last.A, true, false);
+                    context.LineTo(last.B, true, true);
+                }
+                /*yield return startPoint.HasValue
                     ? new PathFigure(startPoint.Value, new[] { new PolyLineSegment(points, true) }, false)
-                    : new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);
+                    : new PathFigure(last.A, new[] { new LineSegment(last.B, true) }, false);*/
             }
         }
 
@@ -289,6 +297,138 @@ namespace BenLib.WPF
         }
     }
 
+    public class OptimizedStreamGeometryContext
+    {
+        public StreamGeometryContext StreamGeometryContext { get; }
+        //public Rect Clip { get; set; }
+        public double MinimalSquaredDistance { get; set; }
+
+        public OptimizedStreamGeometryContext(StreamGeometryContext streamGeometryContext/*, Rect clip*/, double minimalSquaredDistance)
+        {
+            StreamGeometryContext = streamGeometryContext;
+            //Clip = clip;
+            MinimalSquaredDistance = minimalSquaredDistance;
+        }
+
+        //private bool m_beyondLeft;
+        //private bool m_beyondTop;
+        //private bool m_beyondRight;
+        //private bool m_beyondBottom;
+        private Point m_previousPoint;
+
+        /*private bool IsPointValid(Point point)
+        {
+            //var clip = Clip;
+            //if (clip.Left > point.X)
+            //{
+            //    if (m_beyondLeft) return false;
+            //    m_beyondLeft = true;
+            //}
+            //if (clip.Top > point.Y)
+            //{
+            //    if (m_beyondTop) return false;
+            //    m_beyondTop = true;
+            //}
+            //if (clip.Right < point.X)
+            //{
+            //    if (m_beyondRight) return false;
+            //    m_beyondRight = true;
+            //}
+            //if (clip.Bottom < point.Y)
+            //{
+            //    if (m_beyondBottom) return false;
+            //    m_beyondBottom = true;
+            //}
+            return true;
+        }*/
+
+        public void ArcTo(Point point, Size size, double rotationAngle, bool isLargeArc, SweepDirection sweepDirection, bool isStroked, bool isSmoothJoin)
+        {
+            if (NumFramework.SquaredDistance(m_previousPoint, point) > MinimalSquaredDistance)
+            {
+                StreamGeometryContext.ArcTo(point, size, rotationAngle, isLargeArc, sweepDirection, isStroked, isSmoothJoin);
+                m_previousPoint = point;
+            }
+        }
+        public void BeginFigure(Point startPoint, bool isFilled, bool isClosed)
+        {
+            /*IsPointValid(startPoint);*/
+            StreamGeometryContext.BeginFigure(startPoint, isFilled, isClosed);
+        }
+        public void BezierTo(Point point1, Point point2, Point point3, bool isStroked, bool isSmoothJoin)
+        {
+            if (/*IsPointValid(point3) && */NumFramework.SquaredDistance(m_previousPoint, point3) > MinimalSquaredDistance)
+            {
+                StreamGeometryContext.BezierTo(point1, point2, point3, isStroked, isSmoothJoin);
+                m_previousPoint = point3;
+            }
+        }
+        public void Close() => StreamGeometryContext.Close();
+        public void LineTo(Point point, bool isStroked, bool isSmoothJoin)
+        {
+            if (/*IsPointValid(point) && */NumFramework.SquaredDistance(m_previousPoint, point) > MinimalSquaredDistance)
+            {
+                StreamGeometryContext.LineTo(point, isStroked, isSmoothJoin);
+                m_previousPoint = point;
+            }
+        }
+        public void PolyBezierTo(IEnumerable<Point> points, bool isStroked, bool isSmoothJoin)
+        {
+            Point? p1 = null;
+            Point? p2 = null;
+            foreach (var point in points)
+            {
+                if (!p1.HasValue) p1 = point;
+                else if (!p2.HasValue) p2 = point;
+                else
+                {
+                    if (/*IsPointValid(point) && */NumFramework.SquaredDistance(m_previousPoint, point) > MinimalSquaredDistance)
+                    {
+                        StreamGeometryContext.BezierTo(p1.Value, p2.Value, point, isStroked, isSmoothJoin);
+                        m_previousPoint = point;
+                    }
+                    p1 = p2 = null;
+                }
+            }
+        }
+        public void PolyLineTo(IEnumerable<Point> points, bool isStroked, bool isSmoothJoin)
+        {
+            foreach (var point in points)
+            {
+                if (/*IsPointValid(point) && */NumFramework.SquaredDistance(m_previousPoint, point) > MinimalSquaredDistance)
+                {
+                    StreamGeometryContext.LineTo(point, isStroked, isSmoothJoin);
+                    m_previousPoint = point;
+                }
+            }
+        }
+        public void PolyQuadraticBezierTo(IEnumerable<Point> points, bool isStroked, bool isSmoothJoin)
+        {
+            Point? p1 = null;
+            foreach (var point in points)
+            {
+                if (!p1.HasValue) p1 = point;
+                else
+                {
+                    if (/*IsPointValid(point) && */NumFramework.SquaredDistance(m_previousPoint, point) > MinimalSquaredDistance)
+                    {
+                        StreamGeometryContext.QuadraticBezierTo(p1.Value, point, isStroked, isSmoothJoin);
+                        m_previousPoint = point;
+                    }
+                    p1 = null;
+                }
+            }
+        }
+        public void QuadraticBezierTo(Point point1, Point point2, bool isStroked, bool isSmoothJoin)
+        {
+            if (/*IsPointValid(point2) && */NumFramework.SquaredDistance(m_previousPoint, point2) > MinimalSquaredDistance)
+            {
+                StreamGeometryContext.QuadraticBezierTo(point1, point2, isStroked, isSmoothJoin);
+                m_previousPoint = point2;
+            }
+        }
+    }
+
     public static partial class Extensions
     {
         public static double StrokeLength(this Geometry geometry, double tolerance = -1, ToleranceType type = ToleranceType.Absolute)
@@ -334,7 +474,7 @@ namespace BenLib.WPF
 
         public static IEnumerable<Point> GetPoints(this Geometry geometry, double tolerance = -1, ToleranceType type = ToleranceType.Absolute)
         {
-            var f = geometry is PathGeometry pathGeometry ? pathGeometry : tolerance < 0 ? geometry.GetFlattenedPathGeometry() : geometry.GetFlattenedPathGeometry(tolerance, type);
+            var f = tolerance < 0 ? geometry.GetFlattenedPathGeometry() : geometry.GetFlattenedPathGeometry(tolerance, type);
 
             foreach (var figure in f.Figures)
             {

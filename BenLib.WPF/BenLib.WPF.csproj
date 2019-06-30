@@ -37,13 +37,6 @@
   </PropertyGroup>
   <PropertyGroup />
   <ItemGroup>
-    <Reference Include="BenLib, Version=2018.9.11.1902, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\BenLib\bin\Debug\BenLib.dll</HintPath>
-    </Reference>
-    <Reference Include="BenLib.Standard">
-      <HintPath>..\BenLib.Standard\bin\Debug\netstandard2.0\BenLib.Standard.dll</HintPath>
-    </Reference>
     <Reference Include="INIFileParser, Version=2.5.2.0, Culture=neutral, PublicKeyToken=79af7b307b65cf3c, processorArchitecture=MSIL">
       <HintPath>..\packages\ini-parser.2.5.2\lib\net20\INIFileParser.dll</HintPath>
     </Reference>
@@ -127,6 +120,15 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\BenLib.Framework\BenLib.Framework.csproj">
+      <Project>{6508f952-9675-4b56-9623-7ca7ba5dcbf1}</Project>
+      <Name>BenLib.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\BenLib.Standard\BenLib.Standard.csproj">
+      <Project>{3ed1a0f1-24b4-4936-8ba7-75b90e4d67c1}</Project>
+      <Name>BenLib.Standard</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

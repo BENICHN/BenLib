@@ -397,17 +397,17 @@ namespace BenLib.Standard
 
         #region Progress
 
-        public static double Trim(this double value, double min = 0, double max = 1) => Max(Min(value, max), min);
-        public static decimal Trim(this decimal value, decimal min = 0, decimal max = 1) => Max(Min(value, max), min);
-        public static float Trim(this float value, float min = 0, float max = 1) => Max(Min(value, max), min);
-        public static int Trim(this int value, int min = 0, int max = 1) => Max(Min(value, max), min);
-        public static uint Trim(this uint value, uint min = 0, uint max = 1) => Max(Min(value, max), min);
-        public static long Trim(this long value, long min = 0, long max = 1) => Max(Min(value, max), min);
-        public static ulong Trim(this ulong value, ulong min = 0, ulong max = 1) => Max(Min(value, max), min);
-        public static short Trim(this short value, short min = 0, short max = 1) => Max(Min(value, max), min);
-        public static ushort Trim(this ushort value, ushort min = 0, ushort max = 1) => Max(Min(value, max), min);
-        public static byte Trim(this byte value, byte min = 0, byte max = 1) => Max(Min(value, max), min);
-        public static sbyte Trim(this sbyte value, sbyte min = 0, sbyte max = 1) => Max(Min(value, max), min);
+        public static double Trim(this double value, double min = double.NegativeInfinity, double max = double.PositiveInfinity) => Max(Min(value, max), min);
+        public static decimal Trim(this decimal value, decimal min = decimal.MinValue, decimal max = decimal.MaxValue) => Max(Min(value, max), min);
+        public static float Trim(this float value, float min = float.NegativeInfinity, float max = float.PositiveInfinity) => Max(Min(value, max), min);
+        public static int Trim(this int value, int min = int.MinValue, int max = int.MaxValue) => Max(Min(value, max), min);
+        public static uint Trim(this uint value, uint min = uint.MinValue, uint max = uint.MaxValue) => Max(Min(value, max), min);
+        public static long Trim(this long value, long min = long.MinValue, long max = long.MaxValue) => Max(Min(value, max), min);
+        public static ulong Trim(this ulong value, ulong min = ulong.MinValue, ulong max = ulong.MaxValue) => Max(Min(value, max), min);
+        public static short Trim(this short value, short min = short.MinValue, short max = short.MaxValue) => Max(Min(value, max), min);
+        public static ushort Trim(this ushort value, ushort min = ushort.MinValue, ushort max = ushort.MaxValue) => Max(Min(value, max), min);
+        public static byte Trim(this byte value, byte min = byte.MinValue, byte max = byte.MaxValue) => Max(Min(value, max), min);
+        public static sbyte Trim(this sbyte value, sbyte min = sbyte.MinValue, sbyte max = sbyte.MaxValue) => Max(Min(value, max), min);
 
         #endregion
 

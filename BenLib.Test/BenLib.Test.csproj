@@ -42,15 +42,6 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BenLib">
-      <HintPath>..\BenLib\bin\Debug\BenLib.dll</HintPath>
-    </Reference>
-    <Reference Include="BenLib.Standard">
-      <HintPath>..\BenLib.Standard\bin\Debug\netstandard2.0\BenLib.Standard.dll</HintPath>
-    </Reference>
-    <Reference Include="BenLib.WPF">
-      <HintPath>..\BenLib.WPF\bin\Debug\BenLib.WPF.dll</HintPath>
-    </Reference>
     <Reference Include="FluentAssertions, Version=5.6.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentAssertions.5.6.0\lib\net47\FluentAssertions.dll</HintPath>
     </Reference>
@@ -71,6 +62,20 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BenLib.Framework\BenLib.Framework.csproj">
+      <Project>{6508f952-9675-4b56-9623-7ca7ba5dcbf1}</Project>
+      <Name>BenLib.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\BenLib.Standard\BenLib.Standard.csproj">
+      <Project>{3ed1a0f1-24b4-4936-8ba7-75b90e4d67c1}</Project>
+      <Name>BenLib.Standard</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\BenLib.WPF\BenLib.WPF.csproj">
+      <Project>{162852a6-a275-4acb-916d-0692e53e284f}</Project>
+      <Name>BenLib.WPF</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
