@@ -755,7 +755,7 @@ namespace BenLib.Framework
 
         //public static string ToRGB(this System.Drawing.Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
 
-        public static string ToHex(this Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        public static string ToHex(this Color c) => c.A.ToString("X2") + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
 
         public static string ToRGB(this Color c) => "RGB(" + c.R.ToString() + "," + c.G.ToString() + "," + c.B.ToString() + ")";
 

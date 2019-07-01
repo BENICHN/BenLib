@@ -167,8 +167,8 @@ namespace BenLib.WPF
             return parentObject is T parent ? parent : FindParent<T>(parentObject);
         }
 
-        public static IEnumerable<FieldInfo> GetDependencyProperties(this Type type) => type.GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType.Equals(typeof(DependencyProperty)));
-        public static IEnumerable<FieldInfo> GetAllDependencyProperties(this Type type)
+        public static IEnumerable<DependencyProperty> GetDependencyProperties(this Type type) => type.GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType.Equals(typeof(DependencyProperty))).Select(fi => (DependencyProperty)fi.GetValue(null));
+        public static IEnumerable<DependencyProperty> GetAllDependencyProperties(this Type type)
         {
             var properties = type.GetDependencyProperties();
             if (type.BaseType != typeof(DependencyObject)) properties = properties.Union(type.BaseType.GetAllDependencyProperties());
