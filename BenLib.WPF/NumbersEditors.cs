@@ -1,7 +1,7 @@
 ﻿using BenLib.Framework;
 using BenLib.Standard;
-using System;
 using System.Windows;
+using System.Windows.Input;
 using static System.Math;
 
 namespace BenLib.WPF
@@ -13,8 +13,11 @@ namespace BenLib.WPF
         public double Value { get => (double)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(double), typeof(DoubleEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(DoubleEditor));
+        public double MinValue { get => (double)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(double), typeof(DecimalEditor), new PropertyMetadata(double.NegativeInfinity));
+
+        public double MaxValue { get => (double)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(double), typeof(DecimalEditor), new PropertyMetadata(double.PositiveInfinity));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(DoubleEditor), new PropertyMetadata(0.1));
@@ -25,11 +28,11 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(DoubleEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(DoubleEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(DoubleEditor), new PropertyMetadata(new Predicate<string>(s => s.IsDouble().ShowException())));
         }
         public DoubleEditor()
         {
             AllowedStrings = new[] { "-∞", "∞", "NaN" };
+            TextValidation = s => s.IsDouble(out double d).ShowException() && MinValue <= d && d <= MaxValue;
             ContentType = ContentType.Decimal;
             Desactivated += (sender, e) => Value = Text.ToDouble() ?? Value;
         }
@@ -38,7 +41,7 @@ namespace BenLib.WPF
         {
             if (DragValue == value) m_baseValue = Value;
             double v = m_baseValue + DragValue * IncrementFactor;
-            Value = Round(IsUnsigned ? Max(0, v) : v, 4);
+            Value = Round(v.Trim(MinValue, MaxValue), 4);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -48,20 +51,21 @@ namespace BenLib.WPF
                 Text = ((double)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<double>("Value", (double)e.OldValue, (double)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedDecimal;
-                    TextValidation = s => s.IsDouble(out double d).ShowException() && d >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Decimal;
-                    TextValidation = s => s.IsDouble().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (double)e.NewValue >= 0 ? ContentType.UnsignedDecimal : ContentType.Decimal;
             base.OnPropertyChanged(e);
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Oem102:
+                    Value = Input.IsShiftPressed() ? double.PositiveInfinity : double.NegativeInfinity;
+                    break;
+                case Key.N:
+                    Value = double.NaN;
+                    break;
+            }
         }
     }
 
@@ -72,8 +76,11 @@ namespace BenLib.WPF
         public float Value { get => (float)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(float), typeof(FloatEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(FloatEditor));
+        public float MinValue { get => (float)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(float), typeof(DecimalEditor), new PropertyMetadata(float.NegativeInfinity));
+
+        public float MaxValue { get => (float)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(float), typeof(DecimalEditor), new PropertyMetadata(float.PositiveInfinity));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(FloatEditor), new PropertyMetadata(0.1));
@@ -84,10 +91,11 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(FloatEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(FloatEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(FloatEditor), new PropertyMetadata(new Predicate<string>(s => s.IsFloat().ShowException())));
         }
         public FloatEditor()
         {
+            AllowedStrings = new[] { "-∞", "∞", "NaN" };
+            TextValidation = s => s.IsFloat(out float f).ShowException() && MinValue <= f && f <= MaxValue;
             ContentType = ContentType.Decimal;
             Desactivated += (sender, e) => Value = Text.ToFloat() ?? Value;
         }
@@ -96,7 +104,7 @@ namespace BenLib.WPF
         {
             if (DragValue == value) m_baseValue = Value;
             float v = m_baseValue + (float)(DragValue * IncrementFactor);
-            Value = IsUnsigned ? Max(0, v) : v;
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -106,20 +114,21 @@ namespace BenLib.WPF
                 Text = ((float)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<float>("Value", (float)e.OldValue, (float)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedDecimal;
-                    TextValidation = s => s.IsFloat(out float f).ShowException() && f >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Decimal;
-                    TextValidation = s => s.IsFloat().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (float)e.NewValue >= 0 ? ContentType.UnsignedDecimal : ContentType.Decimal;
             base.OnPropertyChanged(e);
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            switch (e.Key)
+            {
+                case Key.Oem102:
+                    Value = Input.IsShiftPressed() ? float.PositiveInfinity : float.NegativeInfinity;
+                    break;
+                case Key.N:
+                    Value = float.NaN;
+                    break;
+            }
         }
     }
 
@@ -130,8 +139,11 @@ namespace BenLib.WPF
         public decimal Value { get => (decimal)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(decimal), typeof(DecimalEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(DecimalEditor));
+        public decimal MinValue { get => (decimal)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(decimal), typeof(DecimalEditor), new PropertyMetadata(decimal.MinValue));
+
+        public decimal MaxValue { get => (decimal)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(decimal), typeof(DecimalEditor), new PropertyMetadata(decimal.MaxValue));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(DecimalEditor), new PropertyMetadata(0.1));
@@ -142,10 +154,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(DecimalEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(DecimalEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(DecimalEditor), new PropertyMetadata(new Predicate<string>(s => s.IsDecimal().ShowException())));
         }
         public DecimalEditor()
         {
+            TextValidation = s => s.IsDecimal(out decimal m).ShowException() && MinValue <= m && m <= MaxValue;
             ContentType = ContentType.Decimal;
             Desactivated += (sender, e) => Value = Text.ToDecimal() ?? Value;
         }
@@ -154,7 +166,7 @@ namespace BenLib.WPF
         {
             if (DragValue == value) m_baseValue = Value;
             decimal v = m_baseValue + (decimal)(DragValue * IncrementFactor);
-            Value = Round(IsUnsigned ? Max(0, v) : v, 4);
+            Value = Round(v.Trim(MinValue, MaxValue), 4);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -164,19 +176,7 @@ namespace BenLib.WPF
                 Text = ((decimal)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<decimal>("Value", (decimal)e.OldValue, (decimal)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedDecimal;
-                    TextValidation = s => s.IsDecimal(out decimal m).ShowException() && m >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Decimal;
-                    TextValidation = s => s.IsDecimal().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (decimal)e.NewValue >= 0 ? ContentType.UnsignedDecimal : ContentType.Decimal;
             base.OnPropertyChanged(e);
         }
     }
@@ -188,8 +188,11 @@ namespace BenLib.WPF
         public int Value { get => (int)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(int), typeof(IntEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(IntEditor));
+        public int MinValue { get => (int)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(int), typeof(IntEditor), new PropertyMetadata(int.MinValue));
+
+        public int MaxValue { get => (int)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(int), typeof(IntEditor), new PropertyMetadata(int.MaxValue));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(IntEditor), new PropertyMetadata(0.1));
@@ -200,10 +203,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(IntEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(IntEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(IntEditor), new PropertyMetadata(new Predicate<string>(s => s.IsInt().ShowException())));
         }
         public IntEditor()
         {
+            TextValidation = s => s.IsInt(out int i).ShowException() && MinValue <= i && i <= MaxValue;
             ContentType = ContentType.Integer;
             Desactivated += (sender, e) => Value = Text.ToInt() ?? Value;
         }
@@ -212,7 +215,7 @@ namespace BenLib.WPF
         {
             if (DragValue == value) m_baseValue = Value;
             int v = m_baseValue + (int)(DragValue * IncrementFactor);
-            Value = IsUnsigned ? Max(0, v) : v;
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -222,19 +225,7 @@ namespace BenLib.WPF
                 Text = ((int)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<int>("Value", (int)e.OldValue, (int)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedInteger;
-                    TextValidation = s => s.IsInt(out int i).ShowException() && i >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Integer;
-                    TextValidation = s => s.IsInt().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (int)e.NewValue >= 0 ? ContentType.UnsignedInteger : ContentType.Integer;
             base.OnPropertyChanged(e);
         }
     }
@@ -246,6 +237,12 @@ namespace BenLib.WPF
         public uint Value { get => (uint)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(uint), typeof(UIntEditor));
 
+        public uint MinValue { get => (uint)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(uint), typeof(UIntEditor), new PropertyMetadata(uint.MinValue));
+
+        public uint MaxValue { get => (uint)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(uint), typeof(UIntEditor), new PropertyMetadata(uint.MaxValue));
+
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(UIntEditor), new PropertyMetadata(0.1));
 
@@ -255,10 +252,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(UIntEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(UIntEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(UIntEditor), new PropertyMetadata(new Predicate<string>(s => s.IsUInt().ShowException())));
         }
         public UIntEditor()
         {
+            TextValidation = s => s.IsUInt(out uint ui).ShowException() && MinValue <= ui && ui <= MaxValue;
             ContentType = ContentType.UnsignedInteger;
             Desactivated += (sender, e) => Value = Text.ToUInt() ?? Value;
         }
@@ -266,7 +263,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            Value = Max(0, m_baseValue + (uint)(DragValue * IncrementFactor));
+            uint v = m_baseValue + (uint)(DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -287,8 +285,11 @@ namespace BenLib.WPF
         public long Value { get => (long)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(long), typeof(LongEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(LongEditor));
+        public long MinValue { get => (long)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(long), typeof(LongEditor), new PropertyMetadata(long.MinValue));
+
+        public long MaxValue { get => (long)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(long), typeof(LongEditor), new PropertyMetadata(long.MaxValue));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(LongEditor), new PropertyMetadata(0.1));
@@ -299,10 +300,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(LongEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(LongEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(LongEditor), new PropertyMetadata(new Predicate<string>(s => s.IsLong().ShowException())));
         }
         public LongEditor()
         {
+            TextValidation = s => s.IsLong(out long l).ShowException() && MinValue <= l && l <= MaxValue;
             ContentType = ContentType.Integer;
             Desactivated += (sender, e) => Value = Text.ToLong() ?? Value;
         }
@@ -311,7 +312,7 @@ namespace BenLib.WPF
         {
             if (DragValue == value) m_baseValue = Value;
             long v = m_baseValue + (long)(DragValue * IncrementFactor);
-            Value = IsUnsigned ? Max(0, v) : v;
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -321,19 +322,7 @@ namespace BenLib.WPF
                 Text = ((long)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<long>("Value", (long)e.OldValue, (long)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedInteger;
-                    TextValidation = s => s.IsLong(out long l).ShowException() && l >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Integer;
-                    TextValidation = s => s.IsLong().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (long)e.NewValue >= 0 ? ContentType.UnsignedInteger : ContentType.Integer;
             base.OnPropertyChanged(e);
         }
     }
@@ -345,6 +334,12 @@ namespace BenLib.WPF
         public ulong Value { get => (ulong)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(ulong), typeof(ULongEditor));
 
+        public ulong MinValue { get => (ulong)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(ulong), typeof(ULongEditor), new PropertyMetadata(ulong.MinValue));
+
+        public ulong MaxValue { get => (ulong)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(ulong), typeof(ULongEditor), new PropertyMetadata(ulong.MaxValue));
+
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(ULongEditor), new PropertyMetadata(0.1));
 
@@ -354,10 +349,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(ULongEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(ULongEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(ULongEditor), new PropertyMetadata(new Predicate<string>(s => s.IsULong().ShowException())));
         }
         public ULongEditor()
         {
+            TextValidation = s => s.IsULong(out ulong ul).ShowException() && MinValue <= ul && ul <= MaxValue;
             ContentType = ContentType.UnsignedInteger;
             Desactivated += (sender, e) => Value = Text.ToULong() ?? Value;
         }
@@ -365,7 +360,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            Value = Max(0, m_baseValue + (ulong)(DragValue * IncrementFactor));
+            ulong v = m_baseValue + (ulong)(DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -386,8 +382,11 @@ namespace BenLib.WPF
         public short Value { get => (short)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(short), typeof(ShortEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(ShortEditor));
+        public short MinValue { get => (short)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(short), typeof(ShortEditor), new PropertyMetadata(short.MinValue));
+
+        public short MaxValue { get => (short)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(short), typeof(ShortEditor), new PropertyMetadata(short.MaxValue));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(ShortEditor), new PropertyMetadata(0.1));
@@ -398,10 +397,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(ShortEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(ShortEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(ShortEditor), new PropertyMetadata(new Predicate<string>(s => s.IsShort().ShowException())));
         }
         public ShortEditor()
         {
+            TextValidation = s => s.IsShort(out short sh).ShowException() && MinValue <= sh && sh <= MaxValue;
             ContentType = ContentType.Integer;
             Desactivated += (sender, e) => Value = Text.ToShort() ?? Value;
         }
@@ -409,8 +408,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            short v = (short)(m_baseValue + (short)(DragValue * IncrementFactor));
-            Value = IsUnsigned ? Max((short)0, v) : v;
+            short v = (short)(m_baseValue + DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -420,19 +419,7 @@ namespace BenLib.WPF
                 Text = ((short)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<short>("Value", (short)e.OldValue, (short)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedInteger;
-                    TextValidation = s => s.IsShort(out short sh).ShowException() && sh >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Integer;
-                    TextValidation = s => s.IsShort().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (short)e.NewValue >= 0 ? ContentType.UnsignedInteger : ContentType.Integer;
             base.OnPropertyChanged(e);
         }
     }
@@ -444,6 +431,12 @@ namespace BenLib.WPF
         public ushort Value { get => (ushort)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(ushort), typeof(UShortEditor));
 
+        public ushort MinValue { get => (ushort)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(ushort), typeof(UShortEditor), new PropertyMetadata(ushort.MinValue));
+
+        public ushort MaxValue { get => (ushort)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(ushort), typeof(UShortEditor), new PropertyMetadata(ushort.MaxValue));
+
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(UShortEditor), new PropertyMetadata(0.1));
 
@@ -453,10 +446,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(UShortEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(UShortEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(UShortEditor), new PropertyMetadata(new Predicate<string>(s => s.IsUShort().ShowException())));
         }
         public UShortEditor()
         {
+            TextValidation = s => s.IsUShort(out ushort ush).ShowException() && MinValue <= ush && ush <= MaxValue;
             ContentType = ContentType.UnsignedInteger;
             Desactivated += (sender, e) => Value = Text.ToUShort() ?? Value;
         }
@@ -464,7 +457,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            Value = Max((ushort)0, (ushort)(m_baseValue + (ushort)(DragValue * IncrementFactor)));
+            ushort v = (ushort)(m_baseValue + DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -485,6 +479,12 @@ namespace BenLib.WPF
         public byte Value { get => (byte)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(byte), typeof(ByteEditor));
 
+        public byte MinValue { get => (byte)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(byte), typeof(ByteEditor), new PropertyMetadata(byte.MinValue));
+
+        public byte MaxValue { get => (byte)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(byte), typeof(ByteEditor), new PropertyMetadata(byte.MaxValue));
+
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(ByteEditor), new PropertyMetadata(0.1));
 
@@ -494,10 +494,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(ByteEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(ByteEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(ByteEditor), new PropertyMetadata(new Predicate<string>(s => s.IsByte().ShowException())));
         }
         public ByteEditor()
         {
+            TextValidation = s => s.IsByte(out byte b).ShowException() && MinValue <= b && b <= MaxValue;
             ContentType = ContentType.UnsignedInteger;
             Desactivated += (sender, e) => Value = Text.ToByte() ?? Value;
         }
@@ -505,7 +505,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            Value = (byte)Max(0, m_baseValue + (byte)(DragValue * IncrementFactor));
+            byte v = (byte)(m_baseValue + DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -526,8 +527,11 @@ namespace BenLib.WPF
         public sbyte Value { get => (sbyte)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(sbyte), typeof(SByteEditor));
 
-        public bool IsUnsigned { get => (bool)GetValue(IsUnsignedProperty); set => SetValue(IsUnsignedProperty, value); }
-        public static readonly DependencyProperty IsUnsignedProperty = DependencyProperty.Register("IsUnsigned", typeof(bool), typeof(SByteEditor));
+        public sbyte MinValue { get => (sbyte)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(sbyte), typeof(SByteEditor), new PropertyMetadata(sbyte.MinValue));
+
+        public sbyte MaxValue { get => (sbyte)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(sbyte), typeof(SByteEditor), new PropertyMetadata(sbyte.MaxValue));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(SByteEditor), new PropertyMetadata(0.1));
@@ -538,10 +542,10 @@ namespace BenLib.WPF
         {
             DragProperty.OverrideMetadata(typeof(SByteEditor), new PropertyMetadata(true));
             TextProperty.OverrideMetadata(typeof(SByteEditor), new PropertyMetadata("0"));
-            TextValidationProperty.OverrideMetadata(typeof(SByteEditor), new PropertyMetadata(new Predicate<string>(s => s.IsSByte().ShowException())));
         }
         public SByteEditor()
         {
+            TextValidation = s => s.IsSByte(out sbyte sb).ShowException() && MinValue <= sb && sb <= MaxValue;
             ContentType = ContentType.Integer;
             Desactivated += (sender, e) => Value = Text.ToSByte() ?? Value;
         }
@@ -549,8 +553,8 @@ namespace BenLib.WPF
         protected override void OnIncrement(double value)
         {
             if (DragValue == value) m_baseValue = Value;
-            sbyte v = (sbyte)(m_baseValue + (sbyte)(DragValue * IncrementFactor));
-            Value = IsUnsigned ? Max((sbyte)0, v) : v;
+            sbyte v = (sbyte)(m_baseValue + DragValue * IncrementFactor);
+            Value = v.Trim(MinValue, MaxValue);
         }
 
         protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
@@ -560,19 +564,7 @@ namespace BenLib.WPF
                 Text = ((sbyte)e.NewValue).ToString();
                 ValueChanged?.Invoke(this, new PropertyChangedExtendedEventArgs<sbyte>("Value", (sbyte)e.OldValue, (sbyte)e.NewValue));
             }
-            else if (e.Property == IsUnsignedProperty)
-            {
-                if ((bool)e.NewValue)
-                {
-                    ContentType = ContentType.UnsignedInteger;
-                    TextValidation = s => s.IsSByte(out sbyte b).ShowException() && b >= 0;
-                }
-                else
-                {
-                    ContentType = ContentType.Integer;
-                    TextValidation = s => s.IsSByte().ShowException();
-                }
-            }
+            else if (e.Property == MinValueProperty) ContentType = (sbyte)e.NewValue >= 0 ? ContentType.UnsignedInteger : ContentType.Integer;
             base.OnPropertyChanged(e);
         }
     }
