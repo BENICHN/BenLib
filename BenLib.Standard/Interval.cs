@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using static System.Math;
 
 namespace BenLib.Standard
@@ -391,6 +392,71 @@ namespace BenLib.Standard
         public static Range<T> NegativeRealsNoZero = CO(Ordinal<T>.NegativeInfinity, Ordinal<T>.Zero);
         public static Range<T> PositiveRealsNoZero = OC(Ordinal<T>.Zero, Ordinal<T>.PositiveInfinity);
         public static MultiRange<T> RealsNoZero = (MultiRange<T>)(NegativeRealsNoZero | PositiveRealsNoZero);
+
+        public static Interval<T> Parse(string s, Func<string, T> selector)
+        {
+            string[] ranges = s.Split(new[] { " ∪ " }, StringSplitOptions.RemoveEmptyEntries);
+            return ranges.Union(sr =>
+            {
+                sr = sr.Trim();
+
+                var r = sr switch
+                {
+                    "∅" => EmptySet,
+                    "ℤ" => Reals,
+                    "ℝ" => Reals,
+                    "ℤ₋" => NegativeReals,
+                    "ℝ₋" => NegativeReals,
+                    "ℕ" => PositiveReals,
+                    "ℝ₊" => PositiveReals,
+                    "ℤ₋*" => NegativeRealsNoZero,
+                    "ℝ₋*" => NegativeRealsNoZero,
+                    "ℕ*" => PositiveRealsNoZero,
+                    "ℝ₊*" => PositiveRealsNoZero,
+                    "ℝ*" => RealsNoZero,
+                    _ => (Interval<T>)null
+                };
+                if (r != null) return r;
+
+                if (Regex.IsMatch(sr, @"^{.+}$")) return sr.Substring(1, sr.Length - 2).Split(';').Union(v => Single(selector(v)));
+                else
+                {
+                    int lStart = sr[0] switch
+                    {
+                        '[' => 0,
+                        '⟦' => 0,
+                        ']' => 1,
+                        '⟧' => 1,
+                        _ => throw new FormatException()
+                    };
+                    int lEnd = sr[sr.Length - 1] switch
+                    {
+                        ']' => 0,
+                        '⟧' => 0,
+                        '[' => -1,
+                        '⟦' => -1,
+                        _ => throw new FormatException()
+                    };
+                    string[] vs = sr.Substring(1, sr.Length - 2).Split(';');
+                    if (vs.Length != 2) throw new FormatException();
+                    var start = vs[0] switch
+                    {
+                        "-∞" => Ordinal<T>.NegativeInfinity,
+                        "+∞" => Ordinal<T>.PositiveInfinity,
+                        "NaN" => Ordinal<T>.NaN,
+                        _ => new Ordinal<T>(selector(vs[0]), lStart)
+                    };
+                    var end = vs[1] switch
+                    {
+                        "-∞" => Ordinal<T>.NegativeInfinity,
+                        "+∞" => Ordinal<T>.PositiveInfinity,
+                        "NaN" => Ordinal<T>.NaN,
+                        _ => new Ordinal<T>(selector(vs[1]), lStart)
+                    };
+                    return CC(start, end);
+                }
+            });
+        }
     }
 
     public sealed class Range<T> : Interval<T>, IEquatable<Range<T>> where T : IComparable<T>
