@@ -772,5 +772,11 @@ namespace BenLib.Framework
                 double.NaN;
             return (h * 60, max == 0 ? 0 : c / max, max);
         }
+
+        public static (double Alpha, double Hue, double Saturation, double Brightness) AHSB(this Color color)
+        {
+            var (h, s, b) = color.HSB();
+            return ((double)color.A / 255, h, s, b);
+        }
     }
 }

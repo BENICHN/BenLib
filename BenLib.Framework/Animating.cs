@@ -75,6 +75,7 @@ namespace BenLib.Framework
     {
         public IEasingFunction EasingFunction { get => (IEasingFunction)GetValue(EasingFunctionProperty); set => SetValue(EasingFunctionProperty, value); }
         public static readonly DependencyProperty EasingFunctionProperty = DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(EasingKeyFrame<T>));
+
         protected override Freezable CreateInstanceCore() => new EasingKeyFrame<T>();
         protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, EasingFunction?.Ease(keyFrameProgress) ?? keyFrameProgress);
     }
@@ -83,6 +84,7 @@ namespace BenLib.Framework
     {
         public KeySpline KeySpline { get => (KeySpline)GetValue(KeySplineProperty); set => SetValue(KeySplineProperty, value); }
         public static readonly DependencyProperty KeySplineProperty = DependencyProperty.Register("KeySpline", typeof(KeySpline), typeof(SplineKeyFrame<T>), new PropertyMetadata(new KeySpline()), v => v != null);
+
 
         protected override Freezable CreateInstanceCore() => new SplineKeyFrame<T>();
         protected override T InterpolateValueCore(T baseValue, double keyFrameProgress) => ValueInterpolationHelper<T>.Default.Interpolate(baseValue, Value, KeySpline.GetSplineProgress(keyFrameProgress));
@@ -126,7 +128,7 @@ namespace BenLib.Framework
     public class EasingAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
     {
         public IEasingFunction EasingFunction { get => (IEasingFunction)GetValue(EasingFunctionProperty); set => SetValue(EasingFunctionProperty, value); }
-        public static readonly DependencyProperty EasingFunctionProperty = DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(EasingKeyFrame<T>));
+        public static readonly DependencyProperty EasingFunctionProperty = DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(EasingAbsoluteKeyFrame<T>));
 
         protected override Freezable CreateInstanceCore() => new EasingAbsoluteKeyFrame<T>();
         public override double EaseProgress(double keyFrameProgress) => EasingFunction?.Ease(keyFrameProgress) ?? keyFrameProgress;
@@ -135,7 +137,7 @@ namespace BenLib.Framework
     public class SplineAbsoluteKeyFrame<T> : AbsoluteKeyFrame<T>
     {
         public KeySpline KeySpline { get => (KeySpline)GetValue(KeySplineProperty); set => SetValue(KeySplineProperty, value); }
-        public static readonly DependencyProperty KeySplineProperty = DependencyProperty.Register("KeySpline", typeof(KeySpline), typeof(SplineKeyFrame<T>), new PropertyMetadata(new KeySpline()), v => v != null);
+        public static readonly DependencyProperty KeySplineProperty = DependencyProperty.Register("KeySpline", typeof(KeySpline), typeof(SplineAbsoluteKeyFrame<T>), new PropertyMetadata(new KeySpline()), v => v != null);
 
         protected override Freezable CreateInstanceCore() => new SplineAbsoluteKeyFrame<T>();
         public override double EaseProgress(double keyFrameProgress) => KeySpline?.GetSplineProgress(keyFrameProgress) ?? keyFrameProgress;
@@ -227,7 +229,7 @@ namespace BenLib.Framework
         protected override Freezable CreateInstanceCore() => new KeySpline();
     }
 
-    public interface IAbsoluteKeyFrameCollection : IList, INotifyCollectionChanged
+    public interface IAbsoluteKeyFrameCollection : IList, INotifyCollectionChanged, IEnumerable<IAbsoluteKeyFrame>
     {
         event EventHandler Changed;
         int IndexOfKeyFrameAt(long framesCount);
@@ -353,6 +355,8 @@ namespace BenLib.Framework
                 UpdateKeyFramePosition(index, item);
             }
         }
+
+        IEnumerator<IAbsoluteKeyFrame> IEnumerable<IAbsoluteKeyFrame>.GetEnumerator() => GetEnumerator();
     }
 
     public static class Animating
@@ -3676,31 +3680,37 @@ namespace BenLib.Framework
 
     public enum StaticAnimationState { Running, Paused, Stopped }
 
-    public class SmoothEase : IEasingFunction
+    public class SmoothEase : Freezable, IEasingFunction
     {
-        public SmoothEase() => Inflection = 10;
+        public SmoothEase() { }
         public SmoothEase(int inflection) => Inflection = inflection;
 
-        public int Inflection { get; set; }
+        public int Inflection { get => (int)GetValue(InflectionProperty); set => SetValue(InflectionProperty, value); }
+        public static readonly DependencyProperty InflectionProperty = DependencyProperty.Register("Inflection", typeof(int), typeof(SmoothEase), new PropertyMetadata(10));
 
         public double Ease(double normalizedTime) => EaseOn(normalizedTime, Inflection);
 
         public static double EaseOn(double normalizedTime, double inflection = 10)
         {
-            double error = Standard.Num.Sigmoid(-inflection / 2);
-            return (Standard.Num.Sigmoid(inflection * (normalizedTime - 0.5)) - error) / (1 - 2 * error);
+            double error = Num.Sigmoid(-inflection / 2);
+            return (Num.Sigmoid(inflection * (normalizedTime - 0.5)) - error) / (1 - 2 * error);
         }
+
+        protected override Freezable CreateInstanceCore() => new SmoothEase();
     }
 
-    public class DoubleSmoothEase : IEasingFunction
+    public class DoubleSmoothEase : Freezable, IEasingFunction
     {
-        public DoubleSmoothEase() => Inflection = 10;
+        public DoubleSmoothEase() { }
         public DoubleSmoothEase(int inflection) => Inflection = inflection;
 
-        public int Inflection { get; set; }
+        public int Inflection { get => (int)GetValue(InflectionProperty); set => SetValue(InflectionProperty, value); }
+        public static readonly DependencyProperty InflectionProperty = DependencyProperty.Register("Inflection", typeof(int), typeof(DoubleSmoothEase), new PropertyMetadata(10));
 
         public double Ease(double normalizedTime) => EaseOn(normalizedTime, Inflection);
 
         public static double EaseOn(double normalizedTime, double inflection = 10) => normalizedTime < 0.5 ? 0.5 * SmoothEase.EaseOn(2 * normalizedTime, inflection) : 0.5 * (1 + SmoothEase.EaseOn(2 * normalizedTime - 1, inflection));
+
+        protected override Freezable CreateInstanceCore() => new DoubleSmoothEase();
     }
 }
