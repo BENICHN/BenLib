@@ -361,14 +361,9 @@ namespace BenLib.Framework
 
     public static class Animating
     {
-        public static Dictionary<string, StaticAnimation> Animations { get; } = new Dictionary<string, StaticAnimation>();
-
-        #region DoubleAnimation
-
-        public static async Task Animate<T>(string name, Action<T> setter, T from, T to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
+        public static StaticAnimation Animate<T>(Action<T> setter, T from, T to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
         {
             bool finished = false;
-            var tcs = new TaskCompletionSource<object>();
             var animation = new StaticAnimation();
             long iterationsCount = 0;
 
@@ -381,14 +376,10 @@ namespace BenLib.Framework
 
             double CurrentMilliseconds() => fps.HasValue ? frameStopwatch.ElapsedMilliseconds : stopwatch.ElapsedMilliseconds;
 
-            TimeSpan totalDuration;
-            if (repeatBehavior.HasCount) totalDuration = repeatBehavior.Count == 0 ? duration : duration.Multiply(repeatBehavior.Count);
-            else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
-            else totalDuration = TimeSpan.MaxValue;
-
+            var totalDuration = repeatBehavior.HasCount ? repeatBehavior.Count == 0 ? duration : duration.Multiply(repeatBehavior.Count) : repeatBehavior.HasDuration ? repeatBehavior.Duration : TimeSpan.MaxValue;
             double totalMilliseconds = totalDuration.TotalMilliseconds;
 
-            if (name != null) animation.StateChanged += StateChanged;
+            animation.StateChanged += StateChanged;
 
             void StateChanged(object sender, EventArgs<StaticAnimationState> e)
             {
@@ -434,38 +425,21 @@ namespace BenLib.Framework
                     finished = true;
                     stopwatch?.Stop();
                     CompositionTarget.Rendering -= Animate;
-                    if (name != null)
-                    {
-                        animation.StateChanged -= StateChanged;
-                        Animations.Remove(name);
-                        animation.End();
-                    }
-                    tcs.TrySetResult(null);
+                    animation.StateChanged -= StateChanged;
+                    animation.End();
                 }
             }
 
             CompositionTarget.Rendering += Animate;
 
-            if (name != null)
-            {
-                if (Animations.TryGetValue(name, out var oldAnimation))
-                {
-                    oldAnimation.Stop();
-                    await oldAnimation.Wait();
-                }
-                Animations.Add(name, animation);
-            }
-
             stopwatch?.Start();
-            await tcs.Task;
+            return animation;
         }
-
-        public static async Task AnimateArray<T>(string name, Action<T[]> setter, IList<T> from, IList<T> to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
+        public static StaticAnimation AnimateArray<T>(Action<T[]> setter, IList<T> from, IList<T> to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
         {
-            if (from.Count != to.Count) return;
+            var corr = from.ExpandOrContract((0, from.Count - 1), to, (0, to.Count - 1)).ToArray();
 
             bool finished = false;
-            var tcs = new TaskCompletionSource<object>();
             var animation = new StaticAnimation();
             long iterationsCount = 0;
 
@@ -478,16 +452,12 @@ namespace BenLib.Framework
 
             double CurrentMilliseconds() => fps.HasValue ? frameStopwatch.ElapsedMilliseconds : stopwatch.ElapsedMilliseconds;
 
-            TimeSpan totalDuration;
-            if (repeatBehavior.HasCount) totalDuration = repeatBehavior.Count == 0 ? duration : duration.Multiply(repeatBehavior.Count);
-            else if (repeatBehavior.HasDuration) totalDuration = repeatBehavior.Duration;
-            else totalDuration = TimeSpan.MaxValue;
-
+            var totalDuration = repeatBehavior.HasCount ? repeatBehavior.Count == 0 ? duration : duration.Multiply(repeatBehavior.Count) : repeatBehavior.HasDuration ? repeatBehavior.Duration : TimeSpan.MaxValue;
             double totalMilliseconds = totalDuration.TotalMilliseconds;
 
             int count = from.Count;
 
-            if (name != null) animation.StateChanged += StateChanged;
+            animation.StateChanged += StateChanged;
 
             void StateChanged(object sender, EventArgs<StaticAnimationState> e)
             {
@@ -520,7 +490,7 @@ namespace BenLib.Framework
                 double progress = easingFunction?.Ease(baseProgress) ?? baseProgress;
 
                 var value = new T[count];
-                for (int i = 0; i < count; i++) value[i] = ValueInterpolationHelper<T>.Default.Interpolate(from[i], to[i], isCumulative ? progress + iterationsCount : progress);
+                for (int i = 0; i < count; i++) value[i] = ValueInterpolationHelper<T>.Default.Interpolate(corr[i].From, corr[i].To, isCumulative ? progress + iterationsCount : progress);
 
                 setter(value);
 
@@ -536,36 +506,19 @@ namespace BenLib.Framework
                     finished = true;
                     stopwatch?.Stop();
                     CompositionTarget.Rendering -= Animate;
-                    if (name != null)
-                    {
-                        animation.StateChanged -= StateChanged;
-                        Animations.Remove(name);
-                        animation.End();
-                    }
-                    tcs.TrySetResult(null);
+                    animation.StateChanged -= StateChanged;
+                    animation.End();
                 }
             }
 
             CompositionTarget.Rendering += Animate;
 
-            if (name != null)
-            {
-                if (Animations.TryGetValue(name, out var oldAnimation))
-                {
-                    oldAnimation.Stop();
-                    await oldAnimation.Wait();
-                }
-                Animations.Add(name, animation);
-            }
-
             stopwatch?.Start();
-            await tcs.Task;
+            return animation;
         }
-
-        public static async Task AnimateUsingKeyFrames<T>(string name, Action<T> setter, T from, IEnumerable<KeyFrame<T>> keyFrames, Duration duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, int? fps = null)
+        public static StaticAnimation AnimateUsingKeyFrames<T>(Action<T> setter, T from, IEnumerable<KeyFrame<T>> keyFrames, Duration duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, int? fps = null)
         {
             bool finished = false;
-            var tcs = new TaskCompletionSource<object>();
             var animation = new StaticAnimation();
             long iterationsCount = 0;
 
@@ -578,10 +531,9 @@ namespace BenLib.Framework
 
             var resolvedKeyFrames = ResolveKeyTimes(keyFrames, duration, out var durationTime);
 
-            var totalDuration = repeatBehavior.HasCount ? repeatBehavior.Count == 0 ? durationTime : durationTime.Multiply(repeatBehavior.Count) :
-                repeatBehavior.HasDuration ? repeatBehavior.Duration : TimeSpan.MaxValue;
+            var totalDuration = repeatBehavior.HasCount ? repeatBehavior.Count == 0 ? durationTime : durationTime.Multiply(repeatBehavior.Count) : repeatBehavior.HasDuration ? repeatBehavior.Duration : TimeSpan.MaxValue;
 
-            if (name != null) animation.StateChanged += StateChanged;
+            animation.StateChanged += StateChanged;
 
             void StateChanged(object sender, EventArgs<StaticAnimationState> e)
             {
@@ -660,77 +612,18 @@ namespace BenLib.Framework
                     finished = true;
                     stopwatch?.Stop();
                     CompositionTarget.Rendering -= Animate;
-                    if (name != null)
-                    {
-                        animation.StateChanged -= StateChanged;
-                        animation.End();
-                        Animations.Remove(name);
-                    }
-                    tcs.TrySetResult(null);
+                    animation.StateChanged -= StateChanged;
+                    animation.End();
                 }
             }
 
             CompositionTarget.Rendering += Animate;
 
-            if (name != null)
-            {
-                if (Animations.TryGetValue(name, out var oldAnimation))
-                {
-                    oldAnimation.Stop();
-                    await oldAnimation.Wait();
-                }
-                Animations.Add(name, animation);
-            }
-
             stopwatch?.Start();
-            await tcs.Task;
+            return animation;
         }
 
-        /*public static T GetValue<T>(FrameStopwatch current, KeyFrame<T>[] resolvedKeyFrames) => GetValue(current, resolvedKeyFrames[0].Value, resolvedKeyFrames);
-        public static T GetValue<T>(FrameStopwatch current, T from, KeyFrame<T>[] resolvedKeyFrames)
-        {
-            var currentTime = current.Elapsed;
-            int maxKeyFrameIndex = resolvedKeyFrames.Length - 1;
-            int currentKeyFrameIndex = 0;
-            T currentKeyFrameValue;
-
-            while (currentKeyFrameIndex < resolvedKeyFrames.Length && currentTime > resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameIndex++;
-            while (currentKeyFrameIndex < maxKeyFrameIndex && currentTime == resolvedKeyFrames[currentKeyFrameIndex + 1].KeyTime.TimeSpan) currentKeyFrameIndex++;
-
-            if (currentKeyFrameIndex == resolvedKeyFrames.Length) currentKeyFrameValue = resolvedKeyFrames[maxKeyFrameIndex].Value;
-            else if (currentTime == resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan) currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].Value;
-            else
-            {
-                T fromValue;
-                double currentSegmentProgress;
-
-                if (currentKeyFrameIndex == 0)
-                {
-                    fromValue = from;
-                    currentSegmentProgress = currentTime.TotalMilliseconds / resolvedKeyFrames[0].KeyTime.TimeSpan.TotalMilliseconds;
-                }
-                else
-                {
-                    int previousKeyFrameIndex = currentKeyFrameIndex - 1;
-                    var previousKeyTime = resolvedKeyFrames[previousKeyFrameIndex].KeyTime.TimeSpan;
-
-                    fromValue = resolvedKeyFrames[previousKeyFrameIndex].Value;
-
-                    var segmentCurrentTime = currentTime - previousKeyTime;
-                    var segmentDuration = resolvedKeyFrames[currentKeyFrameIndex].KeyTime.TimeSpan - previousKeyTime;
-
-                    currentSegmentProgress = segmentCurrentTime.TotalMilliseconds / segmentDuration.TotalMilliseconds;
-                }
-
-                currentKeyFrameValue = resolvedKeyFrames[currentKeyFrameIndex].InterpolateValue(fromValue, Math.Min(currentSegmentProgress, 1));
-            }
-
-            return currentKeyFrameValue;
-        }*/
-
-        #endregion
-
-        #region PointAnimation
+        /*#region PointAnimation
 
         public static async Task AnimatePoint(string name, Action<Point> setter, Point from, Point to, TimeSpan duration, RepeatBehavior repeatBehavior = default, bool autoReverse = false, bool isCumulative = false, IEasingFunction easingFunction = null, int? fps = null)
         {
@@ -3485,7 +3378,7 @@ namespace BenLib.Framework
             await tcs.Task;
         }
 
-        #endregion
+        #endregion*/
 
         private struct KeyTimeBlock
         {
@@ -3532,14 +3425,12 @@ namespace BenLib.Framework
                     }
                 }
 
-                if (hasTimeSpanKeyTime) return largestTimeSpanKeyTime;
-                else return TimeSpan.FromSeconds(1.0);
+                return hasTimeSpanKeyTime ? largestTimeSpanKeyTime : TimeSpan.FromSeconds(1.0);
             }
 
             durationTime = TimeSpan.FromSeconds(1);
 
-            if (duration.HasTimeSpan) durationTime = duration.TimeSpan;
-            else durationTime = LargestTimeSpanKeyTime();
+            durationTime = duration.HasTimeSpan ? duration.TimeSpan : LargestTimeSpanKeyTime();
 
             int maxKeyFrameIndex = keyFramesArray.Length - 1;
             var unspecifiedBlocks = new ArrayList();
@@ -3658,23 +3549,26 @@ namespace BenLib.Framework
         public void Pause() => State = StaticAnimationState.Paused;
         public void Stop() => State = StaticAnimationState.Stopped;
 
-        public Task Wait()
+        public Task Task
         {
-            if (!IsEnded)
+            get
             {
-                var tcs = new TaskCompletionSource<object>();
-
-                Ended += OnEnded;
-
-                void OnEnded(object sender, EventArgs e)
+                if (!IsEnded)
                 {
-                    Ended -= OnEnded;
-                    tcs.TrySetResult(null);
-                }
+                    var tcs = new TaskCompletionSource<object>();
 
-                return tcs.Task;
+                    Ended += OnEnded;
+
+                    void OnEnded(object sender, EventArgs e)
+                    {
+                        Ended -= OnEnded;
+                        tcs.TrySetResult(null);
+                    }
+
+                    return tcs.Task;
+                }
+                else return Task.CompletedTask;
             }
-            else return Task.CompletedTask;
         }
     }
 

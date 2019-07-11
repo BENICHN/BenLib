@@ -10,6 +10,7 @@ namespace BenLib.Standard
     public static class Misc
     {
         public static IEnumerable<Type> BaseTypes(this Type type) => type.BaseType is Type baseType ? baseType.BaseTypes().Append(baseType) : Enumerable.Empty<Type>();
+        public static IEnumerable<Type> BaseTypesWithGenericTypeDefinition(this Type type) => type.BaseType is Type baseType ? (baseType.ContainsGenericParameters ? baseType.BaseTypesWithGenericTypeDefinition().Append(baseType.GetGenericTypeDefinition()) : baseType.BaseTypesWithGenericTypeDefinition()).Append(baseType) : Enumerable.Empty<Type>();
     }
 
     public static partial class Extensions

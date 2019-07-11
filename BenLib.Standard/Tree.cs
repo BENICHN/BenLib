@@ -327,7 +327,7 @@ namespace BenLib.Standard
             get
             {
                 if (type.IsInterface) return new TypeNode(type, new TypeTree(InterfaceImplementations(type)));
-                if (type.IsGenericType)
+                if (type.ContainsGenericParameters)
                 {
                     var args = type.GenericTypeArguments;
                     if (args.Length > 0)
@@ -341,7 +341,7 @@ namespace BenLib.Standard
 
                 TypeNode currentNode = null;
                 var currentTree = this;
-                foreach (var baseType in type.BaseTypes().Append(type))
+                foreach (var baseType in type.BaseTypesWithGenericTypeDefinition().Append(type))
                 {
                     int index = currentTree.Nodes.IndexOf(node => node.Type == baseType);
                     if (index == -1) throw new ArgumentException();
@@ -386,9 +386,9 @@ namespace BenLib.Standard
 
             TypeNode currentNode = null;
             var currentTree = this;
-            foreach (var baseType in type.BaseTypes().Append(type))
+            foreach (var baseType in type.BaseTypesWithGenericTypeDefinition().Append(type))
             {
-                var currentType = baseType.IsGenericType ? baseType.GetGenericTypeDefinition() : baseType;
+                var currentType = baseType.ContainsGenericParameters ? baseType.GetGenericTypeDefinition() : baseType;
 
                 int index = currentTree.Nodes.IndexOf(node => node.Type == currentType);
                 if (index == -1)

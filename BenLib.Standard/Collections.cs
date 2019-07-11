@@ -332,6 +332,9 @@ namespace BenLib.Standard
             }
         }
 
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> source, T item) => source.Where(o => !EqualityComparer<T>.Default.Equals(o, item));
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> source, T item, IEqualityComparer<T> equalityComparer) => source.Where(o => !equalityComparer.Equals(o, item));
+
         public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, Predicate<T> predicate, Func<T, IEnumerable<T>> replacement)
         {
             var enumerator = source.GetEnumerator();
@@ -555,6 +558,77 @@ namespace BenLib.Standard
             }
 
             return queue.ToArray();
+        }
+
+        public static (T[] match, T[] others) WhereAndNot<T>(this IEnumerable<T> source, Func<T, bool> filter)
+        {
+            var match = new List<T>();
+            var others = new List<T>();
+            foreach (var item in source)
+            {
+                if (filter(item)) match.Add(item);
+                else others.Add(item);
+            }
+            return (match.ToArray(), others.ToArray());
+        }
+
+        public static (T[] match, TSource[] others) OfTypeAndNot<TSource, T>(this IEnumerable<TSource> source)
+        {
+            var match = new List<T>();
+            var others = new List<TSource>();
+            foreach (var item in source)
+            {
+                if (item is T t) match.Add(t);
+                else others.Add(item);
+            }
+            return (match.ToArray(), others.ToArray());
+        }
+
+        public static (T[] match, object[] others) OfTypeAndNot<T>(this IEnumerable source)
+        {
+            var match = new List<T>();
+            var others = new List<object>();
+            foreach (object item in source)
+            {
+                if (item is T t) match.Add(t);
+                else others.Add(item);
+            }
+            return (match.ToArray(), others.ToArray());
+        }
+
+        public static (T match, T[] others) FirstAndOthers<T>(this IEnumerable<T> source, Func<T, bool> filter)
+        {
+            bool searching = true;
+            T match = default;
+            var others = new List<T>();
+            foreach (var item in source)
+            {
+                if (searching && filter(item))
+                {
+                    match = item;
+                    searching = false;
+                }
+                else others.Add(item);
+            }
+            if (searching) throw new InvalidOperationException();
+            return (match, others.ToArray());
+        }
+
+        public static (T match, T[] others) FirstOrDefaultAndOthers<T>(this IEnumerable<T> source, Func<T, bool> filter)
+        {
+            bool searching = true;
+            T match = default;
+            var others = new List<T>();
+            foreach (var item in source)
+            {
+                if (searching && filter(item))
+                {
+                    match = item;
+                    searching = false;
+                }
+                else others.Add(item);
+            }
+            return (match, others.ToArray());
         }
 
         public static void RemoveAll<T>(this ICollection<T> source) => source.RemoveAll(item => true);
