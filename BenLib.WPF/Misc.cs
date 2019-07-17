@@ -176,17 +176,19 @@ namespace BenLib.WPF
         }
     }
 
-    public class BoolToValueConverter<T> : DependencyObject, IValueConverter
+    public class BooleanConverter<T> : IValueConverter
     {
-        public T FalseValue { get => (T)GetValue(FalseValueProperty); set => SetValue(FalseValueProperty, value); }
-        public T TrueValue { get => (T)GetValue(TrueValueProperty); set => SetValue(TrueValueProperty, value); }
+        public BooleanConverter(T trueValue, T falseValue)
+        {
+            True = trueValue;
+            False = falseValue;
+        }
 
-        public static readonly DependencyProperty FalseValueProperty = DependencyProperty.RegisterAttached("FalseValue", typeof(T), typeof(BoolToValueConverter<T>), new PropertyMetadata(null));
-        public static readonly DependencyProperty TrueValueProperty = DependencyProperty.RegisterAttached("TrueValue", typeof(T), typeof(BoolToValueConverter<T>), new PropertyMetadata(null));
+        public T True { get; set; }
+        public T False { get; set; }
 
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value == null ? FalseValue : (object)((bool)value ? TrueValue : FalseValue);
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value != null ? value.Equals(TrueValue) : false;
+        public virtual object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is bool && (bool)value ? True : False;
+        public virtual object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value is T && EqualityComparer<T>.Default.Equals((T)value, True);
     }
 
     public class MultiValueConverter : IMultiValueConverter

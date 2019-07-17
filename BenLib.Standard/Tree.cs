@@ -388,7 +388,7 @@ namespace BenLib.Standard
             var currentTree = this;
             foreach (var baseType in type.BaseTypesWithGenericTypeDefinition().Append(type))
             {
-                var currentType = baseType.ContainsGenericParameters ? baseType.GetGenericTypeDefinition() : baseType;
+                var currentType = /*baseType.ContainsGenericParameters ? baseType.GetGenericTypeDefinition() :*/ baseType;
 
                 int index = currentTree.Nodes.IndexOf(node => node.Type == currentType);
                 if (index == -1)
