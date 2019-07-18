@@ -4,7 +4,7 @@ using BenLib.Standard;
 using static BenLib.Standard.Interval<int>;
 using static BenLib.Standard.Ordinal<int>;
 using System;
-using System.Threading.Tasks;
+using System.Numerics;
 
 namespace BenLib.Test
 {
@@ -35,6 +35,15 @@ namespace BenLib.Test
         [TestMethod]
         public void NumTest()
         {
+            BigInteger a = 16;
+            var b = BigInteger.Pow(ulong.MaxValue, 100);
+            BigDecimal c = 148.426215188848488762M;
+            var d = new BigDecimal(123456789, -2);
+            var bi = b.IntegerRoot(int.MaxValue);
+            var a4 = a.IntegerRoot(4);
+            var a3 = a.IntegerRoot(3);
+            var a2 = a.IntegerRoot(2);
+
             double t1 = Num.Solve(x => Num.GetBezierPoint(x, (0, 0), (0.8, 0.5), (0.1, 1), (1, 1)).x - 0.7, 0, 1, 0.001, 0.7);
             var t2 = Num.GetBezierPointFromX(0.7, 0.001, (0, 0), (0.8, 0.5), (0.1, 1), (1, 1));
         }

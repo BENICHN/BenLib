@@ -75,11 +75,11 @@ namespace BenLib.WPF
             {
                 if ((bool)e.NewValue) //Register
                 {
-                    if (!m_attachedControls.TryGetValue(element, out var _)) m_attachedControls.Add(element, new WPFExtensions(element));
+                    if (!m_attachedControls.TryGetValue(element, out _)) m_attachedControls.Add(element, new WPFExtensions(element));
                 }
                 else //Unregister
                 {
-                    if (m_attachedControls.TryGetValue(element, out var extensions))
+                    if (m_attachedControls.TryGetValue(element, out _))
                     {
                         m_attachedControls.Remove(element);
                     }

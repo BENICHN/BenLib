@@ -58,11 +58,11 @@ namespace BenLib.WPF
             {
                 if ((bool)e.NewValue) //Register
                 {
-                    if (!m_attachedControls.TryGetValue(slider, out var _)) m_attachedControls.Add(slider, new GrabAnywhere(slider));
+                    if (!m_attachedControls.TryGetValue(slider, out _)) m_attachedControls.Add(slider, new GrabAnywhere(slider));
                 }
                 else //Unregister
                 {
-                    if (m_attachedControls.TryGetValue(slider, out var extensions))
+                    if (m_attachedControls.TryGetValue(slider, out _))
                     {
                         m_attachedControls.Remove(slider);
                     }
