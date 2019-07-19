@@ -269,10 +269,10 @@ namespace BenLib.Standard
 
         public static implicit operator Ordinal<T>(T value) => new Ordinal<T>(value, 0);
 
-        public static Ordinal<T> Zero = new Ordinal<T>(OrdinalValueHelper<T>.Default.Zero, 0);
-        public static Ordinal<T> NaN = new Ordinal<T>(default, 0, OrdinalState.NaN);
-        public static Ordinal<T> PositiveInfinity = new Ordinal<T>(default, -1, OrdinalState.PositiveInfinity);
-        public static Ordinal<T> NegativeInfinity = new Ordinal<T>(default, 1, OrdinalState.NegativeInfinity);
+        public static readonly Ordinal<T> Zero = new Ordinal<T>(OrdinalValueHelper<T>.Default.Zero, 0);
+        public static readonly Ordinal<T> NaN = new Ordinal<T>(default, 0, OrdinalState.NaN);
+        public static readonly Ordinal<T> PositiveInfinity = new Ordinal<T>(default, -1, OrdinalState.PositiveInfinity);
+        public static readonly Ordinal<T> NegativeInfinity = new Ordinal<T>(default, 1, OrdinalState.NegativeInfinity);
 
         public static Ordinal<T> Min(in Ordinal<T> left, in Ordinal<T> right) => left < right ? left : right;
         public static Ordinal<T> Max(in Ordinal<T> left, in Ordinal<T> right) => left > right ? left : right;
@@ -385,13 +385,13 @@ namespace BenLib.Standard
         public bool IsPositiveRealsNoZero => Equals(PositiveRealsNoZero);
         public bool IsRealsNoZero => Equals(RealsNoZero);
 
-        public static Range<T> EmptySet = new Range<T>(Ordinal<T>.NaN, Ordinal<T>.NaN);
-        public static Range<T> NegativeReals = new Range<T>(Ordinal<T>.NegativeInfinity, Ordinal<T>.Zero);
-        public static Range<T> PositiveReals = new Range<T>(Ordinal<T>.Zero, Ordinal<T>.PositiveInfinity);
-        public static Range<T> Reals = new Range<T>(Ordinal<T>.NegativeInfinity, Ordinal<T>.PositiveInfinity);
-        public static Range<T> NegativeRealsNoZero = CO(Ordinal<T>.NegativeInfinity, Ordinal<T>.Zero);
-        public static Range<T> PositiveRealsNoZero = OC(Ordinal<T>.Zero, Ordinal<T>.PositiveInfinity);
-        public static MultiRange<T> RealsNoZero = (MultiRange<T>)(NegativeRealsNoZero | PositiveRealsNoZero);
+        public static readonly Range<T> EmptySet = new Range<T>(Ordinal<T>.NaN, Ordinal<T>.NaN);
+        public static readonly Range<T> NegativeReals = new Range<T>(Ordinal<T>.NegativeInfinity, Ordinal<T>.Zero);
+        public static readonly Range<T> PositiveReals = new Range<T>(Ordinal<T>.Zero, Ordinal<T>.PositiveInfinity);
+        public static readonly Range<T> Reals = new Range<T>(Ordinal<T>.NegativeInfinity, Ordinal<T>.PositiveInfinity);
+        public static readonly Range<T> NegativeRealsNoZero = CO(Ordinal<T>.NegativeInfinity, Ordinal<T>.Zero);
+        public static readonly Range<T> PositiveRealsNoZero = OC(Ordinal<T>.Zero, Ordinal<T>.PositiveInfinity);
+        public static readonly MultiRange<T> RealsNoZero = (MultiRange<T>)(NegativeRealsNoZero | PositiveRealsNoZero);
 
         public static Interval<T> Parse(string s, Func<string, T> selector)
         {
@@ -429,7 +429,7 @@ namespace BenLib.Standard
                         '⟧' => 1,
                         _ => throw new FormatException()
                     };
-                    int lEnd = sr[sr.Length - 1] switch
+                    int lEnd = sr.Last() switch
                     {
                         ']' => 0,
                         '⟧' => 0,

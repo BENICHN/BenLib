@@ -13,6 +13,24 @@ namespace BenLib.Standard
         private static SemaphoreSlim RandomSemaphore { get; } = new SemaphoreSlim(1);
         private static Random RandomObject { get; } = new Random();
 
+        public static BigInteger RoughRoot(BigInteger value, int root)
+        {
+            byte[] bytes = value.ToByteArray();    // get binary representation
+            int bits = (bytes.Length - 1) * 8;  // get # bits in all but msb
+                                                // add # bits in msb
+            for (byte msb = bytes.Last(); msb != 0; msb >>= 1) bits++;
+            int rtBits = bits / root + 1;   // # bits in the root
+            int rtBytes = rtBits / 8 + 1;   // # bytes in the root
+                                            // avoid making a negative number by adding an extra 0-byte if the high bit is set
+            byte[] rtArray = new byte[rtBytes + (rtBits % 8 == 7 ? 1 : 0)];
+            // set the msb
+            rtArray[rtBytes - 1] = (byte)(1 << (rtBits % 8));
+            // make new BigInteger from array of bytes
+            return new BigInteger(rtArray);
+        }
+
+        public const int MaxRootIterations = 100;
+
         public static double Random()
         {
             try
@@ -302,65 +320,66 @@ namespace BenLib.Standard
 
     public static partial class Extensions
     {
+        public static int Digits(this BigInteger value) => (int)Ceiling(BigInteger.Log10(value * value.Sign));
+        public static TryResult IsInt(this BigInteger value, out int result)
+        {
+            try
+            {
+                result = (int)value;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                result = 0;
+                return ex;
+            }
+        }
+
         #region Pow
 
         public static double Pow(this double x, double y) => Math.Pow(x, y);
-
         public static double Pow(this int x, double y) => Math.Pow(x, y);
-
         public static double Pow(this decimal x, double y) => Math.Pow((double)x, y);
-
         public static double Pow(this long x, double y) => Math.Pow(x, y);
-
         public static double Pow(this float x, double y) => Math.Pow(x, y);
-
         public static double Pow(this short x, double y) => Math.Pow(x, y);
-
         public static double Pow(this uint x, double y) => Math.Pow(x, y);
-
         public static double Pow(this ushort x, double y) => Math.Pow(x, y);
-
         public static double Pow(this ulong x, double y) => Math.Pow(x, y);
+
+        public static decimal IntPow(this decimal x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static double IntPow(this double x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static float IntPow(this float x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static ulong IntPow(this ulong x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static long IntPow(this long x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static uint IntPow(this uint x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static int IntPow(this int x, uint n) => n == 1 ? x : n % 2 == 0 ? (x * x).IntPow(n / 2) : x * (x * x).IntPow((n - 1) / 2);
+        public static ushort IntPow(this ushort x, uint n) => (ushort)((int)x).IntPow(n);
+        public static short IntPow(this short x, uint n) => (short)((int)x).IntPow(n);
+        public static byte IntPow(this byte x, uint n) => (byte)((int)x).IntPow(n);
+        public static sbyte IntPow(this sbyte x, uint n) => (sbyte)((int)x).IntPow(n);
 
         #endregion
 
         #region ComplexPow
 
         public static Complex ComplexPow(this double x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this int x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this decimal x, double y) => Complex.Pow((double)x, y);
-
         public static Complex ComplexPow(this long x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this float x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this short x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this uint x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this ushort x, double y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this ulong x, double y) => Complex.Pow(x, y);
-
-
         public static Complex ComplexPow(this double x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this int x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this decimal x, Complex y) => Complex.Pow((double)x, y);
-
         public static Complex ComplexPow(this long x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this float x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this short x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this uint x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this ushort x, Complex y) => Complex.Pow(x, y);
-
         public static Complex ComplexPow(this ulong x, Complex y) => Complex.Pow(x, y);
 
         #endregion
@@ -374,23 +393,14 @@ namespace BenLib.Standard
 
             return result;
         }
-
         public static double AbsPow(this double x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this int x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this decimal x, double y) => AbsPowCore((double)x, y);
-
         public static double AbsPow(this long x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this float x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this short x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this uint x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this ushort x, double y) => AbsPowCore(x, y);
-
         public static double AbsPow(this ulong x, double y) => AbsPowCore(x, y);
 
         #endregion
@@ -429,49 +439,17 @@ namespace BenLib.Standard
 
         public static double Magnet(this double d, double value, double tolerance) => Abs(d - value) <= tolerance ? value : d;
 
-        private static BigInteger RoughRoot(BigInteger x, int root)
+        public static BigInteger IntegerRoot(this BigInteger value, int root)
         {
-            byte[] bytes = x.ToByteArray();    // get binary representation
-            int bits = (bytes.Length - 1) * 8;  // get # bits in all but msb
-                                                // add # bits in msb
-            for (byte msb = bytes[bytes.Length - 1]; msb != 0; msb >>= 1) bits++;
-            int rtBits = bits / root + 1;   // # bits in the root
-            int rtBytes = rtBits / 8 + 1;   // # bytes in the root
-                                            // avoid making a negative number by adding an extra 0-byte if the high bit is set
-            byte[] rtArray = new byte[rtBytes + (rtBits % 8 == 7 ? 1 : 0)];
-            // set the msb
-            rtArray[rtBytes - 1] = (byte)(1 << (rtBits % 8));
-            // make new BigInteger from array of bytes
-            return new BigInteger(rtArray);
-        }
+            var oldValue = BigInteger.Zero;
+            var newValue = Num.RoughRoot(value, root);
 
-        public static BigInteger IntegerRoot(this BigInteger n, int root)
-        {
-            var oldValue = new BigInteger(0);
-            var newValue = RoughRoot(n, root);
-            int i = 0;
-            // I limited iterations to 100, but you may want way less
-            while (BigInteger.Abs(newValue - oldValue) >= 1 && i < 100)
+            for (int i = 0; BigInteger.Abs(newValue - oldValue) >= 1 && i < Num.MaxRootIterations; i++)
             {
                 oldValue = newValue;
-                newValue = ((root - 1) * oldValue + n / BigInteger.Pow(oldValue, root - 1)) / root;
-                i++;
+                newValue = ((root - 1) * oldValue + value / BigInteger.Pow(oldValue, root - 1)) / root;
             }
-            return newValue;
-        }
 
-        public static BigDecimal Root(this BigInteger n, int root)
-        {
-            var oldValue = new BigInteger(0);
-            var newValue = RoughRoot(n, root);
-            int i = 0;
-            // I limited iterations to 100, but you may want way less
-            while (BigInteger.Abs(newValue - oldValue) >= 1 && i < 100)
-            {
-                oldValue = newValue;
-                newValue = ((root - 1) * oldValue + n / BigInteger.Pow(oldValue, root - 1)) / root;
-                i++;
-            }
             return newValue;
         }
     }

@@ -26,7 +26,7 @@ namespace BenLib.Test
         [TestMethod]
         public void MemoryTest()
         {
-            void PermanentMethod(object sender, EventArgs e) { }
+            static void PermanentMethod(object sender, EventArgs e) { }
             for (int i = 0; i < 4000000; i++) new Ephemere().EphemereEvent += PermanentMethod;
             GC.Collect();
             while (true) { }
@@ -35,10 +35,17 @@ namespace BenLib.Test
         [TestMethod]
         public void NumTest()
         {
+            var ra = (BigRational)0.1593;
+            var rb = (BigRational)57612.8517267918M;
+            var rc = new BigRational(1, 2);
+
+            var r1 = BigRational.IntegerRoot(new BigRational(1, 32), 2);
+            var r2 = BigRational.Root(new BigRational(1, 32), 5);
+            var r3 = BigRational.Root(new BigRational(1, 32), 2);
+
             BigInteger a = 16;
             var b = BigInteger.Pow(ulong.MaxValue, 100);
-            BigDecimal c = 148.426215188848488762M;
-            var d = new BigDecimal(123456789, -2);
+            BigRational c = 148.426215188848488762M;
             var bi = b.IntegerRoot(int.MaxValue);
             var a4 = a.IntegerRoot(4);
             var a3 = a.IntegerRoot(3);
