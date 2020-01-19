@@ -147,6 +147,31 @@ namespace BenLib.Standard
 
     public partial class Extensions
     {
+        public static bool HasOneItem<T>(this IEnumerable<T> source, out T item, out IEnumerable<T> outSource)
+        {
+            var e = source.GetEnumerator();
+            if (e.MoveNext())
+            {
+                item = e.Current;
+                if (e.MoveNext())
+                {
+                    outSource = OutSource(item, e);
+                    return false;
+                }
+                else
+                {
+                    outSource = null;
+                    return true;
+                }
+            }
+            else throw new ArgumentException("La collection est vide", "source");
+
+            static IEnumerable<T> OutSource(T item, IEnumerator<T> e)
+            {
+                yield return item;
+                do yield return e.Current; while (e.MoveNext());
+            }
+        }
         public static T[] SubArray<T>(this T[] source, int index, int length)
         {
             var result = new T[length];

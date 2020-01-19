@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# IDE0067: Supprimer les objets avant la mise hors de portée
+dotnet_diagnostic.IDE0067.severity = none
