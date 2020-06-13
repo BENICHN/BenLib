@@ -14,10 +14,10 @@ namespace BenLib.WPF
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(double), typeof(DoubleEditor));
 
         public double MinValue { get => (double)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
-        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(double), typeof(DecimalEditor), new PropertyMetadata(double.NegativeInfinity));
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(double), typeof(DoubleEditor), new PropertyMetadata(double.NegativeInfinity));
 
         public double MaxValue { get => (double)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
-        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(double), typeof(DecimalEditor), new PropertyMetadata(double.PositiveInfinity));
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(double), typeof(DoubleEditor), new PropertyMetadata(double.PositiveInfinity));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(DoubleEditor), new PropertyMetadata(0.1));
@@ -77,10 +77,10 @@ namespace BenLib.WPF
         public static readonly DependencyProperty ValueProperty = DependencyProperty.Register("Value", typeof(float), typeof(FloatEditor));
 
         public float MinValue { get => (float)GetValue(MinValueProperty); set => SetValue(MinValueProperty, value); }
-        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(float), typeof(DecimalEditor), new PropertyMetadata(float.NegativeInfinity));
+        public static readonly DependencyProperty MinValueProperty = DependencyProperty.Register("MinValue", typeof(float), typeof(FloatEditor), new PropertyMetadata(float.NegativeInfinity));
 
         public float MaxValue { get => (float)GetValue(MaxValueProperty); set => SetValue(MaxValueProperty, value); }
-        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(float), typeof(DecimalEditor), new PropertyMetadata(float.PositiveInfinity));
+        public static readonly DependencyProperty MaxValueProperty = DependencyProperty.Register("MaxValue", typeof(float), typeof(FloatEditor), new PropertyMetadata(float.PositiveInfinity));
 
         public double IncrementFactor { get => (double)GetValue(IncrementFactorProperty); set => SetValue(IncrementFactorProperty, value); }
         public static readonly DependencyProperty IncrementFactorProperty = DependencyProperty.Register("IncrementFactor", typeof(double), typeof(FloatEditor), new PropertyMetadata(0.1));

@@ -219,7 +219,12 @@ namespace BenLib.WPF
             {
                 var position = e.GetPosition(lbc);
                 var offset = position - m_previousPosition;
-                double value = offset.X - offset.Y;
+                double mult = 1.0;
+                var k = Keyboard.Modifiers;
+                if (k.HasFlag(ModifierKeys.Shift)) mult *= 10.0;
+                if (k.HasFlag(ModifierKeys.Control)) mult *= 0.1;
+                if (k.HasFlag(ModifierKeys.Alt)) mult *= 0.01;
+                double value = mult * (offset.X - offset.Y);
                 DragValue += value;
                 OnIncrement(value);
                 m_previousPosition = position;
