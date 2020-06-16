@@ -224,6 +224,7 @@ namespace BenLib.WPF
                 if (k.HasFlag(ModifierKeys.Shift)) mult *= 10.0;
                 if (k.HasFlag(ModifierKeys.Control)) mult *= 0.1;
                 if (k.HasFlag(ModifierKeys.Alt)) mult *= 0.01;
+                if (k.HasFlag(ModifierKeys.Windows)) mult *= 0.001;
                 double value = mult * (offset.X - offset.Y);
                 DragValue += value;
                 OnIncrement(value);
